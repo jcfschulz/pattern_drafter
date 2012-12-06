@@ -1,0 +1,93 @@
+measure side_seam
+measure inseam
+measure waist
+measure seat
+measure hem
+
+extrapar hem_corr is 1.
+extrapar stance_corr is 0.
+extrapar waist_corr is -1.
+extrapar heel_corr is 4.
+extrapar a_corr is 1.
+extrapar b_corr is -1.
+extrapar g_corr is 2.
+extrapar G1_corr is 1.
+extrapar G_corr is 3.
+extrapar b_left_corr is 0.75
+extrapar S_left_corr is 1.5
+extrapar n_right_corr is 1.
+extrapar b1_move is (1./sqrt(5), 2./sqrt(5))
+
+point L is (0.,0.)
+line LB from L up
+point K on LB from L distance inseam / 10. + inseam / 2.
+point S on LB from L distance inseam
+point B on LB from L distance side_seam
+point G on LB from S distance seat/2./10.+G_corr
+point L1 on LB from L distance heel_corr
+line L1_line from L1 right
+line K_line from K right
+line S_line from S right
+line B_line from B right
+line G_line from G right
+point b_ on B_line from B distance 2*(seat-waist)/10.
+point B1 on B_line from b_ distance waist/4.
+line B1_line from B1 down
+point g intersect B1_line G_line
+point S1 intersect B1_line S_line
+point G1 on G_line from g distance seat/2./10.+G1_corr
+point M on G_line from G distance dist(G,G1)/2.
+line M_line from M up
+point M1 intersect M_line B_line
+point M2 intersect M_line L1_line
+move M2 stance_corr*right
+point a on L1_line from M2 distance -(hem/2.-hem_corr)/2.
+point b on L1_line from M2 distance (hem/2.-hem_corr)/2.
+point ac on L1_line from a distance a_corr
+point bc on L1_line from b distance b_corr
+line ac_G from ac to G
+point K1 intersect K_line ac_G
+line bc_G1 from bc to G1
+point K2 intersect K_line bc_G1
+point S2 intersect S_line bc_G1
+point g_prime on B1_line from g distance g_corr
+line g_prime_S2 from g_prime to S2
+line n_line normal S1 g_prime_S2
+point n intersect n_line g_prime_S2
+point b1 on B_line from b_ distance waist_corr
+point b2 on B_line from B1 distance b_left_corr
+point S3 on S_line from S2 distance S_left_corr
+point nr on n_line from n distance n_right_corr
+
+
+line a_line from a up
+point outseam_control_1 intersect a_line ac_G
+point outseam_control_2 on ac_G from K1 distance -dist(G,K1)/3. 
+seamline front_outseam a outseam_control_1 outseam_control_1 K1
+seamline front_outseam K1 outseam_control_2 S G
+point b1_prime is b1
+move b1_prime b1_move
+point outseam_control_3 on LB from G distance 2*dist(G,B)/5. 
+point outseam_control_4 on LB from G distance 3*dist(G,B)/5. 
+seamline front_outseam G outseam_control_3 outseam_control_4 b1_prime
+
+point topseam_control_1 on B_line from b_ distance 4. 
+seamline front_topseam b1_prime topseam_control_1 M1 B1
+seamline font_topseam B1 b2
+
+line b_line from b up
+point inseam_control_1 intersect b_line bc_G1
+seamline front_inseam b inseam_control_1 inseam_control_1 K2
+seamline front_inseam_right K2 S2
+point inseam_control_3 on bc_G1 from K2 distance -dist(S2,K2)/2. 
+seamline front_inseam_left K2 inseam_control_3 S3
+
+point crotchseam_control_1 on B1_line from g_prime distance 2*dist(g,S1)/5.
+seamline front_crotchseam_right B1 g crotchseam_control_1 S2
+point g2 on G_line from g distance b_left_corr
+line b2_line from b2 down
+point crotchseam_control_2 is crotchseam_control_1
+move crotchseam_control_2 S_left_corr*right
+seamline front_crotchseam_left b2 g2 crotchseam_control_2 S3
+
+seamline front_bottom a b
