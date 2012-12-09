@@ -4,7 +4,6 @@ import gtk, gobject, cairo
 
 # Create a GTK+ widget on which we will draw using Cairo
 class Screen(gtk.DrawingArea):
-
     # Draw in response to an expose-event
     __gsignals__ = { "expose-event": "override" }
 
@@ -31,7 +30,8 @@ def run(Widget):
     window = gtk.Window()
     window.connect("delete-event", gtk.main_quit)
     
-    window.set_geometry_hints(min_aspect=0.5, max_aspect=0.5)
+    #window.set_geometry_hints(min_aspect=0.5, max_aspect=0.5)
+    window.set_default_size(200, 500)
     widget = Widget()
     widget.show()
 

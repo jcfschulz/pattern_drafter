@@ -65,7 +65,7 @@ point outseam_control_1 intersect a_line ac_G
 point outseam_control_2 on ac_G from K1 distance -dist(G,K1)/3. 
 seamline front_outseam a outseam_control_1 outseam_control_1 K1
 seamline front_outseam K1 outseam_control_2 S G
-point b1_prime is b1
+point b1_prime is b1.p
 move b1_prime b1_move
 point outseam_control_3 on LB from G distance 2*dist(G,B)/5. 
 point outseam_control_4 on LB from G distance 3*dist(G,B)/5. 
@@ -86,7 +86,7 @@ point crotchseam_control_1 on B1_line from g_prime distance 2*dist(g,S1)/5.
 seamline front_crotchseam_right B1 g crotchseam_control_1 S2
 point g2 on G_line from g distance b_left_corr
 line b2_line from b2 down
-point crotchseam_control_2 is crotchseam_control_1
+point crotchseam_control_2 is crotchseam_control_1.p
 move crotchseam_control_2 S_left_corr*right
 seamline front_crotchseam_left b2 g2 crotchseam_control_2 S3
 

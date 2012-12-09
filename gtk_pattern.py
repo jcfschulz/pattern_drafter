@@ -2,9 +2,11 @@
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, cairo
+
 import copy
-import math
 import numpy as np
+
+import pattern
 
 
 colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0)}
@@ -12,7 +14,7 @@ colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0)}
 class PatternWidget(gtk.DrawingArea):
     __gsignals__ = { "expose-event": "override", "motion-notify-event": "override", "button-press-event": "override", "button-release-event": "override", "scroll-event": "override"}
 
-    def __init__(self):
+    def __init__(self, thispattern):
         super(gtk.DrawingArea, self).__init__()
         self.set_events(gtk.gdk.EXPOSURE_MASK
                             | gtk.gdk.LEAVE_NOTIFY_MASK
@@ -23,16 +25,22 @@ class PatternWidget(gtk.DrawingArea):
                             | gtk.gdk.POINTER_MOTION_HINT_MASK)
         
         self.highlight_points = []
-        self.points = [ [0,0], [10,0], [20,0], [0,108], [40,0], [40,108] ]
+        #self.points = [ [0,0], [10,0], [20,0], [0,108], [40,0], [40,108] ]
 
         self.zoom = .9*1.
     
-        self.maxheight = 108.
-        self.maxwidth = 40.
-        self.maxaspect = self.maxwidth/self.maxheight
-
         self.translate_vector = [20.,20.]
         self.point_moving = False
+
+        self.pattern = thispattern
+
+        self.maxheight = 0.
+        self.maxwidth = 0.
+        for p in self.pattern.points.values():
+            if p.p[0]>self.maxwidth: self.maxwidth=p.p[0]
+            if p.p[1]>self.maxheight: self.maxheight=p.p[1]
+        self.maxaspect = self.maxwidth/self.maxheight
+
 
     def do_expose_event(self, event):
         self.ctx = self.window.cairo_create()
@@ -77,13 +85,14 @@ class PatternWidget(gtk.DrawingArea):
 
 
         self.highlight_points = []
-        for p in self.points:
-            xx,yy = self.recalc(p)
-            if (math.sqrt( (xx - x)**2 + (yy - y)**2) < 0.05):
+        for p in self.pattern.points.values():
+            xx,yy = self.recalc(p.p)
+            #yy = 1-yy
+            if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.01):
                 if (self.point_moving==True):
-                    dx,dy = self.reverse_recalc((xx - x, yy - y))
-                    p[0] -= dx
-                    p[1] -= dy
+                    dx,dy = self.reverse_recalc((xx - x, (yy - (1-y))))
+                    p.p[0] -= dx
+                    p.p[1] -= dy
                 self.highlight_points.append(copy.deepcopy(p))
                 break
         
@@ -127,16 +136,17 @@ class PatternWidget(gtk.DrawingArea):
         return pointx,pointy
 
 
-    def point(self, point, pointsize=10, color="black"):
+    def point(self, point, pointsize=5, color="black"):
         pointx,pointy = self.recalc(point)
         self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
         self.ctx.save()
-        self.ctx.translate(pointx, pointy)
+        self.ctx.translate(pointx, 1-pointy)
         self.ctx.scale (1/(self.zoom*self.width), 1/(self.zoom*self.height)) 
-        self.ctx.arc (0,0, 1, 0., 2*math.pi)
+        self.ctx.arc (0,0, 1, 0., 2*np.pi)
         self.ctx.set_line_width (pointsize)
         self.ctx.stroke()
         self.ctx.restore()
+
 
     def draw(self, width, height):
         self.width = float(width)
@@ -150,26 +160,28 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_source_rgb (1, 1, 1)
         self.ctx.paint()
 
-        for p in self.points:
-            self.point(p,color="black")
+        for p in self.pattern.points.values():
+            self.point(p.p,color="black")
 
         for p in self.highlight_points:
-           self.point(p,color="red")
+           self.point(p.p,color="red")
 
         self.ctx.stroke()
 
 
-def run(Widget):
+def run(Widget, pattern):
     window = gtk.Window()
     window.connect("delete-event", gtk.main_quit)
     
     #window.set_geometry_hints(min_aspect=0.5, max_aspect=0.5)
     window.set_default_size(200, 500)
-    widget = Widget()
+    widget = Widget(pattern)
     widget.show()
 
     window.add(widget)
     window.present()
     gtk.main()
 
-run(PatternWidget)
+trouser = pattern.Pattern("trouser_script")
+trouser.measures_from_argv()
+run(PatternWidget, trouser)

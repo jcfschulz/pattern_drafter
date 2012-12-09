@@ -7,12 +7,14 @@ trouser.measures_from_argv()
         
 import matplotlib.pyplot as p
 
-a=np.transpose(np.array(trouser.points.values()))
+#a=np.transpose(np.array(trouser.points.values()))
+a=np.transpose([i.p for i in trouser.points.values()])
+
 p.plot(a[0],a[1],"o",color="grey")
 
 for l in trouser.lines:
-    a=np.transpose(np.array(trouser.lines[l].minmax_points()))
-    p.plot(a[0],a[1],color="grey")
+    c=np.transpose(np.array(trouser.lines[l].minmax_points()))
+    p.plot(c[0],c[1],color="grey")
 
 for b in trouser.beziers:
     for bb in trouser.beziers[b]:
