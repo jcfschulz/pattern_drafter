@@ -4,64 +4,53 @@ from math import pi
 import math
 import cairo
 
+colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0)}
+
 class Transform(framework.Screen):
+
+    def recalc(self,point):
+        pointx = point[0]
+        pointy = point[1]
+        if (self.aspect < self.maxaspect):
+            # width is limiting factor
+            pointx /= self.maxwidth
+            pointy *= self.aspect/self.maxaspect/self.maxheight
+        else:
+            # height is limiting facto
+            pointx *= self.maxaspect/self.aspect/self.maxwidth
+            pointy /= self.maxheight
+        return pointx,pointy
+
+
+    def point(self, point, pointsize=0.01, color="black"):
+        pointx,pointy = self.recalc(point)
+        self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+        self.ctx.move_to(pointx,pointy)
+        self.ctx.arc (pointx, pointy, 0.01, 0., 2*math.pi)
+        self.ctx.set_line_width (2*pointsize)
+        self.ctx.stroke()
+
     def draw(self, ctx, width, height):
-        ctx.scale (width, height) # Normalizing the canvas
+        self.width = float(width)
+        self.height = float(height)
+        self.aspect = self.width/self.height
+        self.ctx = ctx
+        self.zoom = .9*1.
+    
+        self.maxheight = 108.
+        self.maxwidth = 40.
+        self.maxaspect = self.maxwidth/self.maxheight
 
-        pat = cairo.LinearGradient (0.0, 0.0, 0.0, 1.0)
-        pat.add_color_stop_rgba (1, 0.7, 0, 0, 0.5) # First stop, 50% opacity
-        pat.add_color_stop_rgba (0, 0.9, 0.7, 0.2, 1) # Last stop, 100% opacity
+        ctx.scale (self.zoom*width, self.zoom*height) # Normalizing the canvas
+        ctx.set_source_rgb (1, 1, 1)
+        ctx.paint()
 
-        ctx.rectangle (0, 0, 1, 1) # Rectangle(x0, y0, x1, y1)
-        ctx.set_source (pat)
-        ctx.fill ()
+        ctx.translate (0.05, 0.05)
+        self.point((0,0),color="red")
+        self.point((0,self.maxheight),color="red")
+        self.point((self.maxwidth,0),color="red")
+        self.point((self.maxwidth,self.maxheight),color="green")
 
-        #ctx.translate (0.1, 0.1) # Changing the current transformation matrix
-        ctx.translate (0.2, 0.1) # Changing the current transformation matrix
-
-        ctx.move_to (0, 0)
-        ctx.arc (0.2, 0.1, 0.1, -math.pi/2, 0) # Arc(cx, cy, radius, start_angle, stop_angle)
-        ctx.line_to (0.5, 0.1) # Line to (x,y)
-        ctx.curve_to (0.5, 0.2, 0.5, 0.4, 0.2, 0.8) # Curve(x1, y1, x2, y2, x3, y3)
-        ctx.close_path ()
-
-        ctx.set_source_rgb (0.3, 0.2, 0.5) # Solid color
-        ctx.set_line_width (0.02)
-        ctx.stroke ()
-
-
-"""
-        cr.set_source_rgb(0.5, 0.5, 0.5)
-        cr.rectangle(0, 0, width, height)
-        cr.fill()
-
-        # draw a rectangle
-        cr.set_source_rgb(1.0, 1.0, 1.0)
-        cr.rectangle(10, 10, width - 20, height - 20)
-        cr.fill()
-
-        # set up a transform so that (0,0) to (1,1)
-        # maps to (20, 20) to (width - 40, height - 40)
-        cr.translate(20, 20)
-        cr.scale((width - 40) / 1.0, (height - 40) / 1.0)
-
-        # draw lines
-        cr.set_line_width(0.01)
-        cr.set_source_rgb(0.0, 0.0, 0.8)
-        cr.move_to(1 / 3.0, 1 / 3.0)
-        cr.rel_line_to(0, 1 / 6.0)
-        cr.move_to(2 / 3.0, 1 / 3.0)
-        cr.rel_line_to(0, 1 / 6.0)
-        cr.stroke()
-
-        # and a circle
-        cr.set_source_rgb(1.0, 0.0, 0.0)
-        radius = 1
-        cr.arc(0.5, 0.5, 0.5, 0, 2 * pi)
-        cr.stroke()
-        cr.arc(0.5, 0.5, 0.33, pi / 3, 2 * pi / 3)
-        cr.stroke()
-"""
-
+        self.ctx.stroke()
 
 framework.run(Transform)
