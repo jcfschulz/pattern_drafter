@@ -51,7 +51,7 @@ class VectorLine:
             self.ls.append(float(l[0]))
             return float(l[0])
         else:
-            raise ValueError, "Point does not lie on Line"
+            raise ValueError, "Point does not lie on Line "+self.name+" "+str(l[1])+" : "+str(r.p)+" - "+str(self.r0)
 
     def minmax(self):
         return (np.min(self.ls),np.max(self.ls))
@@ -65,14 +65,19 @@ class VectorLine:
         return self.point(ls[1])
 
 class Point:
-    def __init__(self, name, scriptline, p, fixed=False, show=False, moveable = True, on_lines=[]):
+    def __init__(self, name, scriptline, p, fixed=False, show=False, on_lines=[]):
         self.name = name
         self.p = copy.deepcopy(p)
         self.scriptline = scriptline
 
-        self.fixed = moveable
+        self.fixed = fixed
         self.show = show
         self.on_lines = on_lines
+
+        self.acc_change = np.array([0.,0.])
+        self.acc_lambda = 0.
+
+        if len(on_lines)>1: self.fixed = True
 
     def move_by(self,other):
         self.p += other
@@ -104,6 +109,8 @@ class Pattern:
         self.alldicts.update(self.directions)
         self.alldicts.update(self.functions)
         self.alldicts.update(self.extrapars)
+
+        self.calc_num = 0
 
         self.parse_file(filename)
 
@@ -143,8 +150,10 @@ class Pattern:
         for m in self.measures:  self.measures[m] = float(input(m+": "))
         self.parse_script()
 
-    def parse_script(self):
-        li = 0
+    def parse_script(self,startline = -1):
+        li = startline+1
+        self.beziers = stabledict.StableDict()
+#        for l in self.script_lines[(startline+1):]:
         for l in self.script_lines:
             self.alldicts.update(self.measures)
             self.alldicts.update(self.points)
@@ -156,25 +165,43 @@ class Pattern:
          
             if words[0]=="point":
                 if words[2] == "is":
-                    self.points[words[1]] = Point(words[1], l, np.array(eval(''.join(words[3:]),self.alldicts)))
+                    val = np.array(eval(''.join(words[3:]),self.alldicts))
+                    on_lines = []
+                    fixed=False
                 if words[2] == "on":
                     thisline = self.lines[words[3]]
-                    self.points[words[1]] = Point(words[1], l, thisline.point(thisline.pos(self.points[words[5]])+eval(''.join(words[7:]),self.alldicts)), on_lines=[thisline])
+                    val = thisline.point(thisline.pos(self.points[words[5]])+eval(''.join(words[7:]),self.alldicts))
+                    on_lines=[thisline]
+                    fixed=False
                 if words[2]=="intersect":
                     line1 = self.lines[words[3]]
                     line2 = self.lines[words[4]]
-                    self.points[words[1]] = Point(words[1], l, line1.intersect(line2), on_lines=[line1,line2], fixed=True)
+                    val = line1.intersect(line2)
+                    on_lines=[line1,line2]
+                    fixed=True
+                if (self.calc_num == 0):
+                    self.points[words[1]] = Point(words[1], li, val, fixed=fixed,on_lines=on_lines)
+                else:
+                    self.points[words[1]].on_lines = on_lines
+                    if len(on_lines) == 0:
+                        self.points[words[1]].p = val+self.points[words[1]].acc_change
+                    elif len(on_lines) == 1:
+                        lambd = self.points[words[1]].acc_lambda
+                        lambd += on_lines[0].pos(Point("temp",-1,val))
+                        self.points[words[1]].p = on_lines[0].point(lambd)
+                    elif len(on_lines)==2:
+                        self.points[words[1]].p = val
             
             elif words[0]=="move":
                     self.points[words[1]].move_by(np.array(eval(''.join(words[2:]),self.alldicts)))
 
             elif words[0]=="line":
                 if words[2] == "normal":
-                    self.lines[words[1]] = VectorLine(words[1], l, self.points[words[3]],self.lines[words[4]],"normal")
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.lines[words[4]],"normal")
                 elif words[4] == "to":
-                    self.lines[words[1]] = VectorLine(words[1], l, self.points[words[3]],self.points[words[5]],"two_points", fixed=True)
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.points[words[5]],"two_points", fixed=True)
                 else:
-                    self.lines[words[1]] = VectorLine(words[1], l, self.points[words[3]],eval(words[4],self.alldicts))
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],eval(words[4],self.alldicts))
             
             elif words[0]=="seamline":
                 if self.beziers.has_key(words[1])==False:
@@ -186,20 +213,4 @@ class Pattern:
                     for i in words[2:]: temp.append(copy.deepcopy(self.points[i].p))
                     self.beziers[words[1]].append(temp)
             li += 1
-
-
-
-"""
-further ideas:
-    point properties:
-        moveable/fixed
-        show/invis   (treat bezier control points as non visible, but show with handles)
-        on_line => created by point on line => can only move 
-        script_line
-
-    line properties:
-        moveable/fixed -> moves support point
-        show/invis
-        support_point
-        script_line
-"""
+        self.calc_num += 1

@@ -80,7 +80,7 @@ point inseam_control_1 intersect b_line bc_G1
 seamline front_inseam b inseam_control_1 inseam_control_1 K2
 seamline front_inseam_right K2 S2
 point inseam_control_3 on bc_G1 from K2 distance -dist(S2,K2)/2. 
-seamline front_inseam_left K2 inseam_control_3 S3
+seamline front_inseam_left K2 inseam_control_3 S3 S3
 
 point crotchseam_control_1 on B1_line from g_prime distance 2*dist(g,S1)/5.
 seamline front_crotchseam_right B1 g crotchseam_control_1 S2

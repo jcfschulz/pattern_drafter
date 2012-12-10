@@ -9,7 +9,7 @@ import numpy as np
 import pattern
 
 
-colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0)}
+colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0), "grey": (0.5,0.5,0.5), "orange": (255/255.,127/255.,80/255.), "white": (1,1,1)}
 
 class PatternWidget(gtk.DrawingArea):
     __gsignals__ = { "expose-event": "override", "motion-notify-event": "override", "button-press-event": "override", "button-release-event": "override", "scroll-event": "override"}
@@ -25,12 +25,13 @@ class PatternWidget(gtk.DrawingArea):
                             | gtk.gdk.POINTER_MOTION_HINT_MASK)
         
         self.highlight_points = []
-        #self.points = [ [0,0], [10,0], [20,0], [0,108], [40,0], [40,108] ]
 
         self.zoom = .9*1.
     
-        self.translate_vector = [20.,20.]
+        self.translate_vector = [30.,30.]
         self.point_moving = False
+        self.canvas_moving = False
+        self.move_point = -1
 
         self.pattern = thispattern
 
@@ -52,12 +53,15 @@ class PatternWidget(gtk.DrawingArea):
         if event.button == 1:
             self.oldx = event.x
             self.oldy = event.y
-            self.point_moving = True
+            if len(self.highlight_points)>0:  self.point_moving = True
+            else: self.canvas_moving = True
         return True
 
     def do_button_release_event(self, event):
         if event.button == 1:
             self.point_moving = False
+            self.canvas_moving = False
+            self.move_point = -1
         return True
     
     def do_scroll_event(self, event):
@@ -83,22 +87,39 @@ class PatternWidget(gtk.DrawingArea):
         x/=self.zoom
         y/=self.zoom
 
-
         self.highlight_points = []
-        for p in self.pattern.points.values():
-            xx,yy = self.recalc(p.p)
-            #yy = 1-yy
-            if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.01):
-                if (self.point_moving==True):
-                    dx,dy = self.reverse_recalc((xx - x, (yy - (1-y))))
-                    p.p[0] -= dx
-                    p.p[1] -= dy
-                self.highlight_points.append(copy.deepcopy(p))
-                break
+        if (self.point_moving==True):
+            p = self.pattern.points.values()[self.move_point]
+            if p.fixed != True:
+                xx,yy = self.recalc(p.p)
+                self.highlight_points = [ p ]
+                dx,dy = self.reverse_recalc((xx - x, (yy - (1-y))))
+                px = p.p[0] - dx
+                py = p.p[1] - dy
+
+                if len(p.on_lines)==1:
+                    templine = pattern.VectorLine("temp", -1, pattern.Point("temp",-1,(px,py)), p.on_lines[0], "normal")
+                    px,py = templine.intersect(p.on_lines[0])
+                    templambda = p.on_lines[0].pos(pattern.Point("temp",-1,(px,py)))
+                    p.acc_lambda += templambda - p.on_lines[0].pos(p)
+
+                p.acc_change[0] += px - p.p[0]
+                p.acc_change[1] += py - p.p[1]
+
+                p.p[0] = px
+                p.p[1] = py
+                self.pattern.parse_script(p.scriptline)
+        else:
+            for p in self.pattern.points.values():
+                xx,yy = self.recalc(p.p)
+                if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.01):
+                    self.highlight_points.append(copy.deepcopy(p))
+                    self.move_point = self.pattern.points.values().index(p)
+                    break
         
         if len(self.highlight_points)>0:
             self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
-        elif self.point_moving==True:
+        elif self.canvas_moving==True:
             self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.FLEUR))
             self.translate_vector[0] += (event.x - self.oldx)
             self.translate_vector[1] += (event.y - self.oldy)
@@ -148,6 +169,55 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.restore()
 
 
+    def line(self,point1, point2, linewidth=1, color="black"):
+        point1x,point1y = self.recalc(point1)
+        point2x,point2y = self.recalc(point2)
+        self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+        self.ctx.move_to(point1x,1-point1y)
+        self.ctx.line_to(point2x,1-point2y)
+        self.ctx.save()
+        self.ctx.scale (1/(self.zoom*self.width), 1/(self.zoom*self.height)) 
+        self.ctx.set_line_width (linewidth)
+        self.ctx.stroke()
+        self.ctx.restore()
+
+    def seamline(self, bez, linewidth=3, color="black", control_color="orange"):
+        self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+
+        point1x,point1y = self.recalc(bez[0][0])
+        self.ctx.move_to(point1x,1-point1y)
+        for b in bez:
+            point2x,point2y = self.recalc(b[1])
+            if len(b)==2:
+                self.ctx.line_to(point2x,1-point2y)
+            else:
+                try:
+                    point3x,point3y = self.recalc(b[2])
+                    point4x,point4y = self.recalc(b[3])
+                    self.ctx.curve_to(point2x,1-point2y, point3x,1-point3y, point4x,1-point4y)
+                except IndexError: print b
+
+        self.ctx.save()
+        self.ctx.scale (1/(self.zoom*self.width), 1/(self.zoom*self.height)) 
+        self.ctx.set_line_width (linewidth)
+        self.ctx.stroke()
+        self.ctx.restore()
+        for b in bez:
+            if len(b)==2: continue
+            point1x,point1y = self.recalc(b[0])
+            self.point(b[1],color=control_color)
+            point2x,point2y = self.recalc(b[1])
+            point3x,point3y = self.recalc(b[2])
+            point4x,point4y = self.recalc(b[3])
+            self.point(b[2],color=control_color)
+            self.line(b[0],b[1],color=control_color)
+            self.line(b[2],b[3],color=control_color)
+    
+    def draw_ruler(self):
+        startpoint = reverse_recalc(0,0)
+        pass
+        
+
     def draw(self, width, height):
         self.width = float(width)
         self.height = float(height)
@@ -160,11 +230,23 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_source_rgb (1, 1, 1)
         self.ctx.paint()
 
+
+        tempcolor = "grey"
+        #tempcolor = "white"
         for p in self.pattern.points.values():
-            self.point(p.p,color="black")
+            self.point(p.p,color=tempcolor)
+
+        for l in self.pattern.lines.values():
+            p1,p2 = l.minmax_points()
+            self.line(p1,p2,color=tempcolor)
+
+        for b in self.pattern.beziers.values():
+            self.seamline(b, color="black", control_color="orange")
+
 
         for p in self.highlight_points:
            self.point(p.p,color="red")
+
 
         self.ctx.stroke()
 
@@ -174,7 +256,9 @@ def run(Widget, pattern):
     window.connect("delete-event", gtk.main_quit)
     
     #window.set_geometry_hints(min_aspect=0.5, max_aspect=0.5)
-    window.set_default_size(200, 500)
+    window.set_default_size(400, 900)
+    window.maximize()
+
     widget = Widget(pattern)
     widget.show()
 
@@ -185,3 +269,15 @@ def run(Widget, pattern):
 trouser = pattern.Pattern("trouser_script")
 trouser.measures_from_argv()
 run(PatternWidget, trouser)
+
+
+""" todo:
+rulers
+statusbar -> show pos
+multiple pattern sheets + change buttons
+buttons for: complete recalc, enter measures, save, export
+export pdf/svg
+real zoom
+scroll bars
+make bezier points freely moveable
+"""
