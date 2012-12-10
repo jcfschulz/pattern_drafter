@@ -3,7 +3,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk, gobject, cairo
 
-import copy
+import copy, pickle
 import numpy as np
 
 import pattern
@@ -44,14 +44,50 @@ class PatternWidget(gtk.DrawingArea):
         self.maxaspect = self.maxwidth/self.maxheight
 
         self.construction_color = "grey"
-
-
+        self.bezier_color = "orange"
+        self.showconstruct = True
 
     def do_expose_event(self, event):
         self.ctx = self.window.cairo_create()
         self.ctx.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
         self.ctx.clip()
         self.draw(*self.window.get_size())
+
+    def responseToDialog(self, entry, dialog, response):
+        dialog.response(response)
+
+    def getText(self):
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_QUESTION,
+            gtk.BUTTONS_OK,
+            None)
+        dialog.set_markup('Please enter your measurements:')
+    
+        entries = {}
+        hboxes = {}
+        texts = {}
+
+        for m in self.pattern.measures:
+            entries[m] = gtk.Entry()
+            entries[m].set_text(str(self.pattern.measures[m]))
+            entries[m].connect("activate", self.responseToDialog, dialog, gtk.RESPONSE_OK)
+            hboxes[m] = gtk.HBox()
+            hboxes[m].pack_start(gtk.Label(self.pattern.measurenames[m]), False, 5, 5)
+            hboxes[m].pack_end(entries[m])
+            dialog.vbox.pack_start(hboxes[m], True, True, 0)
+
+        dialog.show_all()
+
+        a = dialog.run()
+        if (a == gtk.RESPONSE_OK):
+            for e in entries:
+                texts[e] = entries[e].get_text()
+        dialog.destroy()
+        return texts
+
+
 
     def do_button_press_event(self, event):
         if event.button == 1:
@@ -118,7 +154,7 @@ class PatternWidget(gtk.DrawingArea):
         else:
             for p in self.pattern.points.values():
                 xx,yy = self.recalc(p.p)
-                if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.01):
+                if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.005):
                     self.highlight_points.append(copy.deepcopy(p))
                     self.move_point = self.pattern.points.values().index(p)
                     break
@@ -208,30 +244,69 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_line_width (linewidth)
         self.ctx.stroke()
         self.ctx.restore()
-        for b in bez:
-            if len(b)==2: continue
-            point1x,point1y = self.recalc(b[0])
-            self.point(b[1],color=control_color)
-            point2x,point2y = self.recalc(b[1])
-            point3x,point3y = self.recalc(b[2])
-            point4x,point4y = self.recalc(b[3])
-            self.point(b[2],color=control_color)
-            self.line(b[0],b[1],color=control_color)
-            self.line(b[2],b[3],color=control_color)
+        if (self.showconstruct):
+            for b in bez:
+                if len(b)==2: continue
+                point1x,point1y = self.recalc(b[0])
+                self.point(b[1],color=control_color)
+                point2x,point2y = self.recalc(b[1])
+                point3x,point3y = self.recalc(b[2])
+                point4x,point4y = self.recalc(b[3])
+                self.point(b[2],color=control_color)
+                self.line(b[0],b[1],color=control_color)
+                self.line(b[2],b[3],color=control_color)
     
     def draw_ruler(self):
         startpoint = reverse_recalc(0,0)
         pass
      
     def showshide_construction(self, event):
-        if (self.construction_color=="grey"): self.construction_color="white"
-        else: self.construction_color="grey"
+        self.showconstruct = not self.showconstruct
         self.queue_draw()
 
     def reset_view(self, event):
         self.translate_vector = copy.deepcopy(self.translate_vector_start)
         self.zoom = .9
         self.queue_draw()
+
+    def reset_measures(self, event):
+        self.pattern.reset_to_measures()
+        self.queue_draw()
+
+    def change_measures(self, event):
+        new_measures = self.getText()
+        for m in new_measures:
+            self.pattern.measures[m] = float(new_measures[m])
+        self.pattern.reset_to_measures()
+        self.queue_draw()
+
+    def open_pattern(self, event):
+        chooser = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            self.pattern = pattern.Pattern(chooser.get_filename())
+            self.pattern.parse_script()
+            self.queue_draw()
+        chooser.destroy()
+
+    def load_state(self, event):
+        chooser = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            data = pickle.load( open( chooser.get_filename(), "r" ) )
+            self.pattern.input_data(data)
+            self.queue_draw()
+        chooser.destroy()
+
+    def save_state(self, event):
+        chooser = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            pickle.dump( self.pattern.return_data(), open( chooser.get_filename(), "wb" ), -1 )
+        chooser.destroy()
 
     def draw(self, width, height):
         self.width = float(width)
@@ -245,19 +320,20 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_source_rgb (1, 1, 1)
         self.ctx.paint()
 
+        if (self.showconstruct):
+            for p in self.pattern.points.values():
+                self.point(p.p,color=self.construction_color)
 
-        for p in self.pattern.points.values():
-            self.point(p.p,color=self.construction_color)
+            for l in self.pattern.lines.values():
+                p1,p2 = l.minmax_points()
+                self.line(p1,p2,color=self.construction_color)
 
-        for l in self.pattern.lines.values():
-            p1,p2 = l.minmax_points()
-            self.line(p1,p2,color=self.construction_color)
+            for p in self.highlight_points:
+               self.point(p.p,color="green")
 
         for b in self.pattern.beziers.values():
-            self.seamline(b, color="black", control_color="orange")
+            self.seamline(b, color="black", control_color=self.bezier_color)
 
-        for p in self.highlight_points:
-           self.point(p.p,color="red")
 
 
         self.ctx.stroke()
@@ -267,24 +343,29 @@ def run(Widget, pattern):
     window = gtk.Window()
     window.connect("delete-event", gtk.main_quit)
     
-    window.set_default_size(400, 900)
-    window.maximize()
+    window.set_default_size(400, 400)
+    #window.maximize()
 
-    canvas = table = gtk.Table(20, 10, True)
+    canvas = table = gtk.Table(20, 10, False)
     window.add(canvas)
     canvas.show()
 
     pattern_canvas = Widget(pattern)
-    canvas.attach(pattern_canvas,1,10,0,20)
+    canvas.attach(pattern_canvas,1,10,0,19)
     pattern_canvas.show()
 
     btn1 = gtk.Button("Load Pattern")
+    btn1.connect("clicked", pattern_canvas.open_pattern)
     btn2 = gtk.Button("Load State")
+    btn2.connect("clicked", pattern_canvas.load_state)
     btn3 = gtk.Button("Save State")
+    btn3.connect("clicked", pattern_canvas.save_state)
     btn4 = gtk.Button("Export PDF/SVG")
 
-    btn5 = gtk.Button("Enter Measures")
+    btn5 = gtk.Button("Change Measures")
+    btn5.connect("clicked", pattern_canvas.change_measures)
     btn6 = gtk.Button("Reset to measures")
+    btn6.connect("clicked", pattern_canvas.reset_measures)
 
     btn7 = gtk.Button("Reset View")
     btn7.connect("clicked", pattern_canvas.reset_view)
@@ -309,8 +390,8 @@ def run(Widget, pattern):
     canvas.attach(btn7,0,1,8,9,xpadding=5)
     canvas.attach(btn8,0,1,9,10,xpadding=5)
 
-    canvas.attach(btn_sheet1,0,1,18,19,xpadding=5)
-    canvas.attach(btn_sheet2,0,1,19,20,xpadding=5)
+    canvas.attach(btn_sheet1,8,9,19,20)
+    canvas.attach(btn_sheet2,9,10,19,20)
 
     btn1.show()
     btn2.show()
@@ -329,7 +410,7 @@ def run(Widget, pattern):
 
 
 trouser = pattern.Pattern("trouser_script")
-trouser.measures_from_argv()
+trouser.parse_script()
 run(PatternWidget, trouser)
 
 
@@ -337,7 +418,6 @@ run(PatternWidget, trouser)
 rulers
 statusbar -> show pos
 multiple pattern sheets + change buttons
-buttons for: complete recalc, enter measures, save, export
 export pdf/svg
 real zoom
 scroll bars

@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-import stabledict   # replace by OrderedDict from Python 2.7
 import warnings
 import copy
 
@@ -90,17 +89,18 @@ class Pattern:
 
     def __init__(self,filename):
         self.script_lines = []
-
-        self.measures = stabledict.StableDict()
-        self.extrapars = stabledict.StableDict()
-        self.points = stabledict.StableDict()
-        self.lines = stabledict.StableDict()
-        self.beziers = stabledict.StableDict()
  
+        self.measures = {}
+        self.extrapars = {}
+        self.points = {}
+        self.lines = {}
+        self.beziers = {}
+        self.measurenames = {}
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            self.directions = stabledict.StableDict({"up" : np.array((0.,1.)), "down" : np.array((0.,-1.)), "right": np.array((1.,0.)), "left": np.array((-1.,0.))})
-            self.functions = stabledict.StableDict({"dist": self.dist, "sqrt": np.sqrt})
+            self.directions = {"up" : np.array((0.,1.)), "down" : np.array((0.,-1.)), "right": np.array((1.,0.)), "left": np.array((-1.,0.))}
+            self.functions = {"dist": self.dist, "sqrt": np.sqrt}
 
         self.alldicts = self.measures.copy()
         self.alldicts.update(self.points)
@@ -109,10 +109,34 @@ class Pattern:
         self.alldicts.update(self.directions)
         self.alldicts.update(self.functions)
         self.alldicts.update(self.extrapars)
+        self.alldicts.update(self.measurenames)
 
         self.calc_num = 0
 
         self.parse_file(filename)
+
+    def return_data(self):
+        return [self.script_lines, self.measures, self.extrapars, self.points, self.lines, self.beziers, self.measurenames, self.calc_num]
+
+    def input_data(self,data):
+        self.script_lines = copy.deepcopy(data[0])
+        self.measures = copy.deepcopy(data[1])
+        self.extrapars = copy.deepcopy(data[2]) 
+        self.points = copy.deepcopy(data[3])
+        self.lines = copy.deepcopy(data[4])
+        self.beziers = copy.deepcopy(data[5])
+        self.measurenames = copy.deepcopy(data[6])
+        self.calc_num = copy.deepcopy(data[7])
+
+        self.alldicts = self.measures.copy()
+        self.alldicts.update(self.points)
+        self.alldicts.update(self.lines)
+        self.alldicts.update(self.beziers)
+        self.alldicts.update(self.directions)
+        self.alldicts.update(self.functions)
+        self.alldicts.update(self.extrapars)
+        self.alldicts.update(self.measurenames)
+
 
     def dist(self,point1,point2):
         return point1.dist(point2)
@@ -126,12 +150,14 @@ class Pattern:
             self.alldicts.update(self.lines)
             self.alldicts.update(self.extrapars)
             self.alldicts.update(self.beziers)
+            self.alldicts.update(self.measurenames)
 
             words = l.split()
             if len(words)==0: continue
             
             if words[0]=="measure":
-                self.measures[words[1]] = 0. 
+                self.measures[words[1]] = float(words[3])
+                self.measurenames[words[1]] = words[2]
             elif words[0]=="extrapar":
                 self.extrapars[words[1]] = eval(''.join(words[3:]),self.alldicts)
             elif words[0][0]=="#":
@@ -150,10 +176,13 @@ class Pattern:
         for m in self.measures:  self.measures[m] = float(input(m+": "))
         self.parse_script()
 
+    def reset_to_measures(self):
+        self.calc_num = 0
+        self.parse_script()
+
     def parse_script(self,startline = -1):
         li = startline+1
-        self.beziers = stabledict.StableDict()
-#        for l in self.script_lines[(startline+1):]:
+        self.beziers = {}
         for l in self.script_lines:
             self.alldicts.update(self.measures)
             self.alldicts.update(self.points)

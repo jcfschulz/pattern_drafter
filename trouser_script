@@ -1,8 +1,8 @@
-measure side_seam
-measure inseam
-measure waist
-measure seat
-measure hem
+measure side_seam Sideseam 108
+measure inseam Inseam 80
+measure waist Waist 84
+measure seat Seat 100
+measure hem Hem 42
 
 extrapar hem_corr is 1.
 extrapar stance_corr is 0.
