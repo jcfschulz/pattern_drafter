@@ -26,9 +26,10 @@ class PatternWidget(gtk.DrawingArea):
         
         self.highlight_points = []
 
-        self.zoom = .9*1.
+        self.zoom = .9
     
-        self.translate_vector = [30.,30.]
+        self.translate_vector_start = [30.,30.]
+        self.translate_vector = copy.deepcopy(self.translate_vector_start)
         self.point_moving = False
         self.canvas_moving = False
         self.move_point = -1
@@ -41,6 +42,9 @@ class PatternWidget(gtk.DrawingArea):
             if p.p[0]>self.maxwidth: self.maxwidth=p.p[0]
             if p.p[1]>self.maxheight: self.maxheight=p.p[1]
         self.maxaspect = self.maxwidth/self.maxheight
+
+        self.construction_color = "grey"
+
 
 
     def do_expose_event(self, event):
@@ -55,6 +59,7 @@ class PatternWidget(gtk.DrawingArea):
             self.oldy = event.y
             if len(self.highlight_points)>0:  self.point_moving = True
             else: self.canvas_moving = True
+        self.queue_draw()
         return True
 
     def do_button_release_event(self, event):
@@ -62,6 +67,7 @@ class PatternWidget(gtk.DrawingArea):
             self.point_moving = False
             self.canvas_moving = False
             self.move_point = -1
+        self.queue_draw()
         return True
     
     def do_scroll_event(self, event):
@@ -216,7 +222,16 @@ class PatternWidget(gtk.DrawingArea):
     def draw_ruler(self):
         startpoint = reverse_recalc(0,0)
         pass
-        
+     
+    def showshide_construction(self, event):
+        if (self.construction_color=="grey"): self.construction_color="white"
+        else: self.construction_color="grey"
+        self.queue_draw()
+
+    def reset_view(self, event):
+        self.translate_vector = copy.deepcopy(self.translate_vector_start)
+        self.zoom = .9
+        self.queue_draw()
 
     def draw(self, width, height):
         self.width = float(width)
@@ -231,18 +246,15 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.paint()
 
 
-        tempcolor = "grey"
-        #tempcolor = "white"
         for p in self.pattern.points.values():
-            self.point(p.p,color=tempcolor)
+            self.point(p.p,color=self.construction_color)
 
         for l in self.pattern.lines.values():
             p1,p2 = l.minmax_points()
-            self.line(p1,p2,color=tempcolor)
+            self.line(p1,p2,color=self.construction_color)
 
         for b in self.pattern.beziers.values():
             self.seamline(b, color="black", control_color="orange")
-
 
         for p in self.highlight_points:
            self.point(p.p,color="red")
@@ -255,16 +267,66 @@ def run(Widget, pattern):
     window = gtk.Window()
     window.connect("delete-event", gtk.main_quit)
     
-    #window.set_geometry_hints(min_aspect=0.5, max_aspect=0.5)
     window.set_default_size(400, 900)
     window.maximize()
 
-    widget = Widget(pattern)
-    widget.show()
+    canvas = table = gtk.Table(20, 10, True)
+    window.add(canvas)
+    canvas.show()
 
-    window.add(widget)
+    pattern_canvas = Widget(pattern)
+    canvas.attach(pattern_canvas,1,10,0,20)
+    pattern_canvas.show()
+
+    btn1 = gtk.Button("Load Pattern")
+    btn2 = gtk.Button("Load State")
+    btn3 = gtk.Button("Save State")
+    btn4 = gtk.Button("Export PDF/SVG")
+
+    btn5 = gtk.Button("Enter Measures")
+    btn6 = gtk.Button("Reset to measures")
+
+    btn7 = gtk.Button("Reset View")
+    btn7.connect("clicked", pattern_canvas.reset_view)
+    btn8 = gtk.Button("Show/Hide Construction Points")
+    btn8.connect("clicked", pattern_canvas.showshide_construction)
+
+
+    btn_sheet1 = gtk.Button("Front Trouser")
+    btn_sheet2 = gtk.Button("Back Trouser")
+
+
+
+
+    canvas.attach(btn1,0,1,0,1,xpadding=5)
+    canvas.attach(btn2,0,1,1,2,xpadding=5)
+    canvas.attach(btn3,0,1,2,3,xpadding=5)
+    canvas.attach(btn4,0,1,3,4,xpadding=5)
+
+    canvas.attach(btn5,0,1,5,6,xpadding=5)
+    canvas.attach(btn6,0,1,6,7,xpadding=5)
+
+    canvas.attach(btn7,0,1,8,9,xpadding=5)
+    canvas.attach(btn8,0,1,9,10,xpadding=5)
+
+    canvas.attach(btn_sheet1,0,1,18,19,xpadding=5)
+    canvas.attach(btn_sheet2,0,1,19,20,xpadding=5)
+
+    btn1.show()
+    btn2.show()
+    btn3.show()
+    btn4.show()
+    btn5.show()
+    btn6.show()
+    btn7.show()
+    btn8.show()
+
+    btn_sheet1.show()
+    btn_sheet2.show()
+
     window.present()
     gtk.main()
+
 
 trouser = pattern.Pattern("trouser_script")
 trouser.measures_from_argv()
