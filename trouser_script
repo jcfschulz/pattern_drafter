@@ -28,7 +28,7 @@ extrapar waistband_corr is 1.
 extrapar back_point_allowance_G is 1.
 extrapar back_point_allowance_S is 1/2.
 extrapar waistband_allowance is 3
-extrapar excess_corr is 0.75
+extrapar excess_corr is 0.5
 
 
 extrapar b1_move is (1./sqrt(5), 2./sqrt(5))
@@ -108,7 +108,7 @@ point crotchseam_control_2 is crotchseam_control_1.p
 move crotchseam_control_2 S_left_corr*right
 seamline front_crotchseam_left b2 g2 crotchseam_control_2 S3
 
-seamline front_bottom a b
+seamline front_hemseam a b
 
 ################################################################################
 
@@ -163,6 +163,42 @@ point B7 on B4_B6 from B6 distance waist/4.+waistband_allowance
 
 point B4_prime on B4_B6 from B4 distance -excess_corr
 point B6_prime on B4_B6 from B6 distance excess_corr
-print dist(B4,B7)
-print dist(B4,B7)-2*excess_corr
+#print dist(B4,B7)
+#print dist(B4,B7)-2*excess_corr
+
+point back_outseam_control_1 on c_K3 from c_prime distance -10
+point back_outseam_control_2 on c_K3 from K3_prime distance 10
+seamline back_outseam c back_outseam_control_1 back_outseam_control_2 K3
+point back_outseam_control_3 is K3.p
+move back_outseam_control_3 7.5*up
+point back_outseam_control_4 on K3_G3 from G3 distance 15
+seamline back_outseam K3 back_outseam_control_3 back_outseam_control_4 G3
+point back_outseam_control_5 on K3_G3 from B4 distance 10
+seamline back_outseam G3 back_outseam_control_5 B4_prime B4_prime
+
+seamline back_topseam B4_prime B6_prime
+
+seamline back_crotchseam B6_prime G2
+seamline back_crotchseam G2 S6
+point back_crotchseam_control_1 on S6_B5 from S6 distance 5
+point back_crotchseam_control_2 is S2.p
+move back_crotchseam_control_2 5*left
+move back_crotchseam_control_2 2*up
+seamline back_crotchseam S6 back_crotchseam_control_1 back_crotchseam_control_2 S2
+line back_crotchseam_control_line from back_crotchseam_control_2 to S2
+point back_crotchseam_control_3 on back_crotchseam_control_line from S2 distance -4
+seamline back_crotchseam S2 back_crotchseam_control_3 S4_prime S4_prime
+
+point back_inseam_control_1 on d_K4 from d_prime distance -10
+point back_inseam_control_2 on d_K4 from K4_prime distance 20
+seamline back_inseam d back_inseam_control_1 back_inseam_control_2 K4
+point back_inseam_control_3 is K4.p
+move back_inseam_control_3 10*up
+move back_inseam_control_3 1*right
+point back_inseam_control_4 is S4.p
+move back_inseam_control_4 10*down
+move back_inseam_control_4 4*left
+seamline back_inseam K4 back_inseam_control_3 back_inseam_control_4 S4_prime
+
+seamline back_hemseam c d
 

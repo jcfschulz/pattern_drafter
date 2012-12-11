@@ -414,13 +414,16 @@ run(PatternWidget, trouser)
 
 """ todo:
 before release:
-- finishes back trouser
+- finish back waist (incl darts)
+- think of back control point movings
+- correct front trouser crotch curve
+- show only relevant seamlines
 - think of shift
 - correct point picking
 - nice title
 - rulers
 - export pdf/svg
-- correct front trouser crotch curve
+
 
 
 after release:
