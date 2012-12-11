@@ -2,16 +2,26 @@ import numpy as np
 import sys
 import warnings
 import copy
+import scipy.optimize
+
+
+#a*l**2+b*l+c=d
+def solve_quadratic(a,b,c,d):
+    cc = c-d
+    return np.array([(-b + np.sqrt(b**2 - 4*a*cc))/(2*a),(-b - np.sqrt(b**2 - 4*a*cc))/(2*a)])
+    
+    
 
 class VectorLine:
 
-    def __init__(self,name,scriptline,r0,u,form_mode="parameter",fixed=False):
+    def __init__(self,name,scriptline,r0,u,form_mode="parameter",fixed=False, belongs_to_sheet="None"):
         self.name = name
         self.scriptline = scriptline
         self.points = []
         self.ls = []
         self.line_prec = 1e-10
         self.fixed = fixed
+        self.belongs_to_sheets = [belongs_to_sheet]
         
         if (form_mode == "parameter"):
             self.r0 = np.array(r0.p)
@@ -63,8 +73,18 @@ class VectorLine:
         line.point(ls[0])
         return self.point(ls[1])
 
+    def with_dist(self, point, dist, entry):
+        if (entry=="min"):
+            l = scipy.optimize.fsolve(lambda l: np.linalg.norm(self.r0 - point.p + l*self.u) - dist, -dist)
+        elif (entry=="max"):
+            l = scipy.optimize.fsolve(lambda l: np.linalg.norm(self.r0 - point.p + l*self.u) - dist, dist)
+        else:
+            raise ValueError, "entry must be min or max"
+        self.point(l)
+        return self.point(l)
+
 class Point:
-    def __init__(self, name, scriptline, p, fixed=False, show=False, on_lines=[]):
+    def __init__(self, name, scriptline, p, fixed=False, show=False, on_lines=[], belongs_to_sheet="None"):
         self.name = name
         self.p = copy.deepcopy(p)
         self.scriptline = scriptline
@@ -75,6 +95,8 @@ class Point:
 
         self.acc_change = np.array([0.,0.])
         self.acc_lambda = 0.
+
+        self.belongs_to_sheets = [belongs_to_sheet]
 
         if len(on_lines)>1: self.fixed = True
 
@@ -112,6 +134,8 @@ class Pattern:
         self.alldicts.update(self.measurenames)
 
         self.calc_num = 0
+
+        self.sheets = []
 
         self.parse_file(filename)
 
@@ -183,6 +207,8 @@ class Pattern:
     def parse_script(self,startline = -1):
         li = startline+1
         self.beziers = {}
+        self.sheets = []
+        belongs_to_sheet = "None"
         for l in self.script_lines:
             self.alldicts.update(self.measures)
             self.alldicts.update(self.points)
@@ -191,11 +217,25 @@ class Pattern:
             self.alldicts.update(self.beziers)
 
             words = l.split()
-         
-            if words[0]=="point":
+            
+            if words[0]=="start":
+                belongs_to_sheet = words[1]
+                self.sheets.append(words[1])
+            elif words[0]=="print":
+                print eval(''.join(words[1:]),self.alldicts)
+            elif words[0]=="sheet":
+                if words[2]=="add":
+                    for w in words[3:]:
+                        self.alldicts[w].belongs_to_sheets.append(words[1])
+            elif words[0]=="point":
                 if words[2] == "is":
                     val = np.array(eval(''.join(words[3:]),self.alldicts))
                     on_lines = []
+                    fixed=False
+                if words[2] == "from":
+                    thisline = self.lines[words[5]]
+                    val = thisline.with_dist(self.points[words[3]],eval(''.join(words[8:]),self.alldicts), words[7])
+                    on_lines = [thisline]
                     fixed=False
                 if words[2] == "on":
                     thisline = self.lines[words[3]]
@@ -209,7 +249,7 @@ class Pattern:
                     on_lines=[line1,line2]
                     fixed=True
                 if (self.calc_num == 0):
-                    self.points[words[1]] = Point(words[1], li, val, fixed=fixed,on_lines=on_lines)
+                    self.points[words[1]] = Point(words[1], li, val, fixed=fixed,on_lines=on_lines, belongs_to_sheet=belongs_to_sheet)
                 else:
                     self.points[words[1]].on_lines = on_lines
                     if len(on_lines) == 0:
@@ -226,11 +266,11 @@ class Pattern:
 
             elif words[0]=="line":
                 if words[2] == "normal":
-                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.lines[words[4]],"normal")
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.lines[words[4]],"normal", belongs_to_sheet=belongs_to_sheet)
                 elif words[4] == "to":
-                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.points[words[5]],"two_points", fixed=True)
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],self.points[words[5]],"two_points", fixed=True, belongs_to_sheet=belongs_to_sheet)
                 else:
-                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],eval(words[4],self.alldicts))
+                    self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],eval(words[4],self.alldicts), belongs_to_sheet=belongs_to_sheet)
             
             elif words[0]=="seamline":
                 if self.beziers.has_key(words[1])==False:

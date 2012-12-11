@@ -182,7 +182,7 @@ class PatternWidget(gtk.DrawingArea):
         if (self.aspect < self.maxaspect):            # width is limiting factor
             pointx /= self.maxwidth
             pointy *= self.aspect/self.maxaspect/self.maxheight
-        else:            # height is limiting facto
+        else:            # height is limiting factor
             pointx *= self.maxaspect/self.aspect/self.maxwidth
             pointy /= self.maxheight
         return pointx,pointy
@@ -223,7 +223,7 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.stroke()
         self.ctx.restore()
 
-    def seamline(self, bez, linewidth=3, color="black", control_color="orange"):
+    def seamline(self, bez, linewidth=3, color="black", control_color="orange", show_control=True):
         self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
 
         point1x,point1y = self.recalc(bez[0][0])
@@ -244,7 +244,7 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_line_width (linewidth)
         self.ctx.stroke()
         self.ctx.restore()
-        if (self.showconstruct):
+        if (self.showconstruct and show_control):
             for b in bez:
                 if len(b)==2: continue
                 point1x,point1y = self.recalc(b[0])
@@ -320,33 +320,37 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.set_source_rgb (1, 1, 1)
         self.ctx.paint()
 
-        if (self.showconstruct):
-            for p in self.pattern.points.values():
-                self.point(p.p,color=self.construction_color)
-
-            for l in self.pattern.lines.values():
-                p1,p2 = l.minmax_points()
-                self.line(p1,p2,color=self.construction_color)
-
-            for p in self.highlight_points:
-               self.point(p.p,color="green")
-
-        for b in self.pattern.beziers.values():
-            self.seamline(b, color="black", control_color=self.bezier_color)
-
-
-
-        self.ctx.stroke()
+        for s in range(len(self.pattern.sheets)):
+            if (self.showconstruct):
+                for p in self.pattern.points.values():
+                    if self.pattern.sheets[s] in p.belongs_to_sheets:
+                        self.point(p.p,color=self.construction_color)
+                for l in self.pattern.lines.values():
+                    if self.pattern.sheets[s] in l.belongs_to_sheets:
+                        p1,p2 = l.minmax_points()
+                        self.line(p1,p2,color=self.construction_color)
+                for p in self.highlight_points:
+                    if self.pattern.sheets[s] in p.belongs_to_sheets:
+                        self.point(p.p,color="green")
+            for b in self.pattern.beziers.values():
+                if (s==0):
+                    self.seamline(b, color="black", control_color=self.bezier_color)
+                else:
+                    self.seamline(b, color="black", control_color=self.bezier_color, show_control=False)
+            
+            temp = [self.maxwidth+30,0]
+            tx,ty = self.recalc(temp)
+            self.ctx.translate(tx, ty)
 
 
 def run(Widget, pattern):
     window = gtk.Window()
     window.connect("delete-event", gtk.main_quit)
     
-    window.set_default_size(400, 400)
-    #window.maximize()
+    window.set_default_size(800, 800)
+    window.maximize()
 
-    canvas = table = gtk.Table(20, 10, False)
+    canvas = gtk.Table(20, 10, False)
     window.add(canvas)
     canvas.show()
 
@@ -373,11 +377,6 @@ def run(Widget, pattern):
     btn8.connect("clicked", pattern_canvas.showshide_construction)
 
 
-    btn_sheet1 = gtk.Button("Front Trouser")
-    btn_sheet2 = gtk.Button("Back Trouser")
-
-
-
 
     canvas.attach(btn1,0,1,0,1,xpadding=5)
     canvas.attach(btn2,0,1,1,2,xpadding=5)
@@ -390,9 +389,6 @@ def run(Widget, pattern):
     canvas.attach(btn7,0,1,8,9,xpadding=5)
     canvas.attach(btn8,0,1,9,10,xpadding=5)
 
-    canvas.attach(btn_sheet1,8,9,19,20)
-    canvas.attach(btn_sheet2,9,10,19,20)
-
     btn1.show()
     btn2.show()
     btn3.show()
@@ -402,8 +398,10 @@ def run(Widget, pattern):
     btn7.show()
     btn8.show()
 
-    btn_sheet1.show()
-    btn_sheet2.show()
+    accel_group = gtk.AccelGroup()
+    accel_group.connect_group(ord('q'), gtk.gdk.CONTROL_MASK,
+    gtk.ACCEL_LOCKED, gtk.main_quit)
+    window.add_accel_group(accel_group) 
 
     window.present()
     gtk.main()
@@ -415,11 +413,24 @@ run(PatternWidget, trouser)
 
 
 """ todo:
-rulers
+before release:
+- finishes back trouser
+- think of shift
+- correct point picking
+- nice title
+- rulers
+- export pdf/svg
+- correct front trouser crotch curve
+
+
+after release:
+intersect bezierline
+measure bezierlength
+change extrapars (on the fly, cancel reverts changes)
+measurement tape
 statusbar -> show pos
-multiple pattern sheets + change buttons
-export pdf/svg
 real zoom
 scroll bars
 make bezier points freely moveable
+undo
 """

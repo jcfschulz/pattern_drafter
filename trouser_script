@@ -1,3 +1,5 @@
+name Basic Trouser Draft following Rundschau XVI Ed
+
 measure side_seam Sideseam 108
 measure inseam Inseam 80
 measure waist Waist 84
@@ -8,15 +10,31 @@ extrapar hem_corr is 1.
 extrapar stance_corr is 0.
 extrapar waist_corr is -1.
 extrapar heel_corr is 4.
-extrapar a_corr is 1.
-extrapar b_corr is -1.
+extrapar front_hem_corr is 1.
 extrapar g_corr is 2.
 extrapar G1_corr is 1.
 extrapar G_corr is 3.
 extrapar b_left_corr is 0.75
 extrapar S_left_corr is 1.5
 extrapar n_right_corr is 1.
+
+extrapar back_hem is 2.5
+extrapar back_knee is 3
+extrapar back_knee_corr is 1
+extrapar back_M_corr is 1
+extrapar back_seat_allowance is 5
+extrapar crookness_angle_corr is -1.5
+extrapar waistband_corr is 1.
+extrapar back_point_allowance_G is 1.
+extrapar back_point_allowance_S is 1/2.
+extrapar waistband_allowance is 3
+extrapar excess_corr is 0.75
+
+
 extrapar b1_move is (1./sqrt(5), 2./sqrt(5))
+
+
+start FrontTrouser
 
 point L is (0.,0.)
 line LB from L up
@@ -43,8 +61,8 @@ point M2 intersect M_line L1_line
 move M2 stance_corr*right
 point a on L1_line from M2 distance -(hem/2.-hem_corr)/2.
 point b on L1_line from M2 distance (hem/2.-hem_corr)/2.
-point ac on L1_line from a distance a_corr
-point bc on L1_line from b distance b_corr
+point ac on L1_line from a distance front_hem_corr
+point bc on L1_line from b distance -front_hem_corr
 line ac_G from ac to G
 point K1 intersect K_line ac_G
 line bc_G1 from bc to G1
@@ -91,3 +109,60 @@ move crotchseam_control_2 S_left_corr*right
 seamline front_crotchseam_left b2 g2 crotchseam_control_2 S3
 
 seamline front_bottom a b
+
+################################################################################
+
+start BackTrouser
+
+sheet BackTrouser add a b M2
+sheet BackTrouser add K1 K2
+sheet BackTrouser add S S1 S2 S3
+sheet BackTrouser add M
+sheet BackTrouser add M1 B1 b_ b1 b1_prime
+sheet BackTrouser add L1_line K_line S_line G_line B_line M_line
+
+point M3 intersect K_line M_line
+
+point c on L1_line from a distance -back_hem
+point c_prime on L1_line from c distance hem_corr
+point d on L1_line from b distance back_hem
+point d_prime on L1_line from d distance -hem_corr
+point K3 on K_line from K1 distance -back_knee
+point K3_prime on K_line from K3 distance -back_knee_corr
+point K4 on K_line from K2 distance back_knee
+point K4_prime on K_line from K4 distance back_knee_corr
+line c_K3 from c_prime to K3_prime
+line d_K4 from d_prime to K4_prime
+
+point m on G_line from M distance back_M_corr
+point S6 on G_line from m distance (seat/4. + back_seat_allowance)/4.
+
+point S_temp intersect ac_G S_line
+point S5 on ac_G from S_temp distance crookness_angle_corr
+line S5_S6 from S5 to S6
+line S6_B5 normal S6 S5_S6
+point B3 intersect S6_B5 B_line
+
+point G2 on S6_B5 from B3 distance dist(B3,S6)/2.
+point G3 from G2 on G_line distance min (seat/4. + back_seat_allowance)
+line G2_G3 from G2 to G3
+line K3_G3 from K3 to G3
+
+point B4 on K3_G3 from K3 distance -dist(K1,b1_prime)
+point B5 from M3 on S6_B5 distance min dist(B4,M3)
+point B6 on S6_B5 from B5 distance waistband_corr
+line B4_B6 from B4 to B6
+
+point G4 on G_line from m distance dist(m,G3)+back_point_allowance_G
+line G4_K4 from G4 to K4
+
+point S4 intersect S_line G4_K4
+point S4_prime on G4_K4 from S4 distance -back_point_allowance_S
+
+point B7 on B4_B6 from B6 distance waist/4.+waistband_allowance
+
+point B4_prime on B4_B6 from B4 distance -excess_corr
+point B6_prime on B4_B6 from B6 distance excess_corr
+print dist(B4,B7)
+print dist(B4,B7)-2*excess_corr
+
