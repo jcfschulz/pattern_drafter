@@ -106,7 +106,7 @@ class PatternWidget(gtk.DrawingArea):
     def responseToDialog(self, entry, dialog, response):
         dialog.response(response)
 
-    def getText(self):
+    def getText_measures(self):
         dialog = gtk.MessageDialog(
             None,
             gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -128,6 +128,46 @@ class PatternWidget(gtk.DrawingArea):
             hboxes[m].pack_end(entries[m])
             dialog.vbox.pack_start(hboxes[m], True, True, 0)
 
+        dialog.show_all()
+
+        a = dialog.run()
+        if (a == gtk.RESPONSE_OK):
+            for e in entries:
+                texts[e] = entries[e].get_text()
+        dialog.destroy()
+        return texts
+
+    def getText_extrapars(self):
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_QUESTION,
+            gtk.BUTTONS_OK,
+            None)
+        dialog.set_markup('Please enter your measurements:')
+    
+        entries = {}
+        hboxes = {}
+        texts = {}
+
+        dialog.set_default_size(800, 800)
+
+        scroll = gtk.ScrolledWindow()
+        dialog.vbox.pack_start(scroll)
+        myvbox = gtk.VBox()
+
+        for m in self.pattern.extrapars:
+            entries[m] = gtk.Entry()
+            entries[m].set_text(str(self.pattern.extrapars[m]))
+            entries[m].connect("activate", self.responseToDialog, dialog, gtk.RESPONSE_OK)
+            hboxes[m] = gtk.HBox()
+            hboxes[m].pack_start(gtk.Label(m), False, 5, 5)
+            hboxes[m].pack_end(entries[m])
+            myvbox.pack_start(hboxes[m], False, False, 0)
+        
+        scroll.add_with_viewport(myvbox)
+        dialog.set_size_request(500, 500)
+    
         dialog.show_all()
 
         a = dialog.run()
@@ -346,10 +386,17 @@ class PatternWidget(gtk.DrawingArea):
         self.queue_draw()
 
     def change_measures(self, event):
-        new_measures = self.getText()
+        new_measures = self.getText_measures()
         for m in new_measures:
             self.pattern.measures[m] = float(new_measures[m])
         self.pattern.reset_to_measures()
+        self.queue_draw()
+
+    def change_extrapars(self, event):
+        new_extrapars = self.getText_extrapars()
+        for m in new_extrapars:
+            self.pattern.extrapars[m] = eval(new_extrapars[m])
+        self.pattern.parse_script(0)
         self.queue_draw()
 
     def open_pattern(self, event):
@@ -385,6 +432,110 @@ class PatternWidget(gtk.DrawingArea):
         chooser.destroy()
 
         self.window.set_title("** Pattern Draw   --   " + self.pattern.filename+"    ( "+self.save_name +" )")
+
+    def export_chooser(self, event):
+        chooser = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+        response = chooser.run()
+        if response == gtk.RESPONSE_OK:
+            export_name = chooser.get_filename()
+            self.export_to_file(export_name)
+        chooser.destroy()
+
+    def export_to_file(self, filename="Untitled.pdf", construction_color="grey", color="black", construction_pointsize=1, construction_linewidth=0.1, linewidth=0.3):
+        conv = lambda x: 28.3464567*x 
+
+        construction_pointsize = conv(construction_pointsize)
+        construction_linewidth = conv(construction_linewidth)
+        linewidth = conv(linewidth)
+
+        s_num = len(self.pattern.sheets)
+        width = conv( 10 + s_num*self.maxwidth + (s_num-1)*self.move_to_next_sheet[0] + 10)
+        height = conv( 10 + self.maxheight + 10)
+
+        if filename.split(".")[1] == "pdf":
+            #print "PDF: ", filename
+            surface = cairo.PDFSurface(filename.split(".")[0] + '.pdf', width, height)
+        elif filename.split(".")[1] == "svg":
+            #print "SVG: ", filename
+            surface = cairo.SVGSurface(filename.split(".")[0] + '.svg', width, height)
+        cr = cairo.Context(surface)
+
+        cr.translate(conv(10), conv(10))
+
+        for s in range(len(self.pattern.sheets)):
+            if (self.showconstruct):
+                for p in self.pattern.points.values():
+                    if self.pattern.sheets[s] in p.belongs_to_sheets:
+                        pointx,pointy = p.p
+                        cr.set_source_rgb (colors[construction_color][0],colors[construction_color][1],colors[construction_color][2])
+                        cr.save()
+                        cr.translate(conv(pointx), conv(self.maxheight-pointy))
+                        cr.arc (0,0, 1, 0., 2*np.pi)
+                        cr.set_line_width (construction_pointsize)
+                        cr.stroke()
+                        cr.restore()
+                for l in self.pattern.lines.values():
+                    if self.pattern.sheets[s] in l.belongs_to_sheets:
+                        p1,p2 = l.minmax_points()
+                        point1x,point1y = p1
+                        point2x,point2y = p2
+                        cr.set_source_rgb (colors[construction_color][0],colors[construction_color][1],colors[construction_color][2])
+                        cr.move_to(conv(point1x), conv(self.maxheight-point1y))
+                        cr.line_to(conv(point2x), conv(self.maxheight-point2y))
+                        cr.save()
+                        cr.set_line_width(construction_linewidth)
+                        cr.stroke()
+                        cr.restore()
+            for b in self.pattern.beziers:
+                if self.pattern.sheets.index(self.pattern.bezier_belongsto[b][0])==s:
+                    cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                    bez = self.pattern.beziers[b]
+                    point1x,point1y = bez[0][0]
+                    cr.move_to(conv(point1x), conv(self.maxheight-point1y))
+                    for bb in bez:
+                        point2x,point2y = bb[1]
+                        if len(bb)==2:
+                            cr.line_to(conv(point2x), conv(self.maxheight-point2y))
+                        else:
+                            try:
+                                point3x,point3y = bb[2]
+                                point4x,point4y = bb[3]
+                                cr.curve_to(conv(point2x), conv(self.maxheight-point2y), conv(point3x), conv(self.maxheight-point3y), conv(point4x), conv(self.maxheight-point4y))
+                            except IndexError: print "IndexError", bb
+
+                    cr.save()
+                    cr.set_line_width (linewidth)
+                    cr.stroke()
+                    cr.restore()
+                if (self.showconstruct):
+                    for other in self.pattern.bezier_belongsto[b][1:]:
+                        if self.pattern.sheets.index(other)==s:
+                            cr.set_source_rgb (colors[construction_color][0],colors[construction_color][1],colors[construction_color][2])
+                            bez = self.pattern.beziers[b]
+                            point1x,point1y = bez[0][0]
+                            cr.move_to(conv(point1x), conv(self.maxheight-point1y))
+                            for bb in bez:
+                                point2x,point2y = bb[1]
+                                if len(bb)==2:
+                                    cr.line_to(conv(point2x), conv(self.maxheight-point2y))
+                                else:
+                                    try:
+                                        point3x,point3y = bb[2]
+                                        point4x,point4y = bb[3]
+                                        cr.curve_to(conv(point2x), conv(self.maxheight-point2y), conv(point3x), conv(self.maxheight-point3y), conv(point4x), conv(self.maxheight-point4y))
+                                    except IndexError: print "IndexError", bb
+
+                            cr.save()
+                            cr.set_line_width (construction_linewidth)
+                            cr.stroke()
+                            cr.restore()
+            
+            tx,ty = self.move_to_next_sheet
+            cr.translate(conv(tx), conv(ty))
+    
+        cr.show_page()
+        surface.finish()
 
     def draw(self, width, height):
         self.width = float(width)
@@ -447,9 +598,13 @@ def run(Widget, pattern):
     btn3 = gtk.Button("Save State")
     btn3.connect("clicked", pattern_canvas.save_state)
     btn4 = gtk.Button("Export PDF/SVG")
+    btn4.connect("clicked", pattern_canvas.export_chooser)
+
 
     btn5 = gtk.Button("Change Measures")
     btn5.connect("clicked", pattern_canvas.change_measures)
+    btn_editextrapars = gtk.Button("Change Extra Parameters")
+    btn_editextrapars.connect("clicked", pattern_canvas.change_extrapars)
     btn6 = gtk.Button("Reset to measures")
     btn6.connect("clicked", pattern_canvas.reset_measures)
 
@@ -458,8 +613,8 @@ def run(Widget, pattern):
     btn8 = gtk.Button("Show/Hide Construction Points")
     btn8.connect("clicked", pattern_canvas.showshide_construction)
 
-    btn9 = gtk.Button("About")
-    btn9.connect("clicked", about_dialogue)
+    btn_about = gtk.Button("About")
+    btn_about.connect("clicked", about_dialogue)
 
 
 
@@ -469,22 +624,24 @@ def run(Widget, pattern):
     canvas.attach(btn4,0,1,3,4,xpadding=5)
 
     canvas.attach(btn5,0,1,4,5,xpadding=5)
-    canvas.attach(btn6,0,1,5,6,xpadding=5)
+    canvas.attach(btn_editextrapars,0,1,5,6,xpadding=5)
+    canvas.attach(btn6,0,1,6,7,xpadding=5)
 
-    canvas.attach(btn7,0,1,6,7,xpadding=5)
-    canvas.attach(btn8,0,1,7,8,xpadding=5)
+    canvas.attach(btn7,0,1,7,8,xpadding=5)
+    canvas.attach(btn8,0,1,8,9,xpadding=5)
 
-    canvas.attach(btn9,0,1,9,10,xpadding=5)
+    canvas.attach(btn_about,0,1,9,10,xpadding=5)
 
     btn1.show()
     btn2.show()
     btn3.show()
     btn4.show()
     btn5.show()
+    btn_editextrapars.show()
     btn6.show()
     btn7.show()
     btn8.show()
-    btn9.show()
+    btn_about.show()
 
     statusbar = gtk.Statusbar()
     statusbar.show()
@@ -518,13 +675,12 @@ before release:
 - nice title (half working)
 - rulers
 - export pdf/svg
-- add button: about
 
 
 after release:
 intersect bezierline
 measure bezierlength
-change extrapars (on the fly, cancel reverts changes)
+advance change extrapars (on the fly, cancel reverts changes)
 measurement tape
 statusbar -> show pos
 real zoom
