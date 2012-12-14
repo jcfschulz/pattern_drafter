@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Pattern drafter by jcfschulz</title>
+    <title>Pattern Drafter by jcfschulz</title>
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
@@ -17,7 +17,7 @@
   <body>
 
       <header>
-        <h1>Pattern drafter</h1>
+        <h1>Pattern Drafter</h1>
         <p>Simple Program to draw Pattern from Drafting Instructions</p>
       </header>
 
@@ -39,7 +39,44 @@
         <ul></ul>
       </nav>
       <section>
-        <h3>Content yet to come</h3>
+        <h1>About</h1>
+
+<h1>Installing</h1>
+
+<p>Pattern Drafter is written in Python and therefore requires a Python 2.x interpreter.
+Furthermore, you will need the following libraries:</p>
+
+<ul>
+<li>NumPy &amp; SciPy</li>
+<li>PyGtk</li>
+<li>PyCairo</li>
+</ul><p>If those libraries are installed, only patter.py, pattern_widget.py and pattern_draw.py from the repository are required.
+You also require the pattern drafting instructions. Currently there is only a basic trouser draft based on Rundschau XVI Ed. Therefore, you should also have the trouser_script file.</p>
+
+<h1>Basic Usage</h1>
+
+<p>The program can be launched from the commandline via
+<code>python pattern_draw.py</code></p>
+
+<p>The main screen consists of the pattern canvas, the buttons and a statusbar.</p>
+
+<h2>Pattern Canvas</h2>
+
+<h3>Moving the Canvas</h3>
+
+<p>You can pan the canvas by clicking on an empty part and drag. You can also zoom in with the scroolwheel of your mouse.</p>
+
+<h3>Pattern Elements</h3>
+
+<ul>
+<li>Green lines mark the cutting lines</li>
+<li>Red lines and points are construction lines</li>
+<li>Blue Points and the corresponding lines mark the Beziér controls for the cutting lines
+### Altering the Pattern</li>
+<li>You can move the points by clicking on the and dragging. On the statusbar you have information about the position change given in cm.</li>
+<li>The movements are restricted by the drafting macro. Currently there is no detailed description in the program, please refer to the corresponding script (and probably also its original source).</li>
+<li>The draft is updated on the fly according to your changes.</li>
+</ul>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/jcfschulz">jcfschulz</a></p>
