@@ -1,7 +1,4 @@
 TODO
-before release 0.0.1:
-- correct front trouser crotch curve
-
 
 for next release:
 - nice title (half working)
@@ -19,5 +16,3 @@ for next release:
 - seamlines (include allowance)
 - options (like cuton waistband)
 
-
-# pdfposter -mA4 -s1 Untitled.pdf tiled.pdf
