@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
-import sys
-import warnings
-import copy
-import scipy.optimize
-
 """
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -33,6 +27,12 @@ import scipy.optimize
     Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
     Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 """
+
+import numpy as np
+import sys
+import warnings
+import copy
+import scipy.optimize
 
 
 #def solve_quadratic(a,b,c,d):
