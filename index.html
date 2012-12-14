@@ -47,6 +47,8 @@
 
 <p>I wanted to bring the classic way of drawing a pattern into the computer without sacrificing flexibility. The draft is therefore highly editable, without leaving it's boundaries.</p>
 
+<p>It might also help in a deeper understanding of a draft, as you can easily see, which parameters alter the pattern in what way.</p>
+
 <p>I myself am currently only starting tailoring, so I might not have thought of important points. This is why I call this currently a version 0.0.1 and would be happy to get input from you. But as I also have a fulltime job, I cannot promise anything.</p>
 
 <p>Please feel free to contact me, if you have questions or suggestions: julius.schulz(ät)fu-berlin.de</p>
@@ -130,7 +132,69 @@ All changes you made previously will be conserved, if you alter extra parameters
 
 <h1>Draft Scripts</h1>
 
-<p>Yet to be done</p>
+<p>In the following I will use some lines from the example script to explain the draft macro language. Please refer to this file to get a better understanding.</p>
+
+<h3>General Commands</h3>
+
+<p><code>name Basic Trouser Draft following Rundschau XVI Ed</code>
+This will set the pattern name as shown in the program window's title.</p>
+
+<p><code>measure side_seam Sideseam 108</code>
+This introduces a measurement variable "side_seam". The name in the Measurements window is "Sideseam" and the default value is 108. 
+The script per se is unit-ignorant and you could choose any you like, however the pdf-exporter assumes the unit to be cm. This can easily be altered however.</p>
+
+<p><code>extrapar b1_move is (1./sqrt(5), 2./sqrt(5))</code>
+<code>extrapar hem_corr is 1.</code>
+With the extrapar command you can create some extra parameters, you might use later in your script. These are editable in an extra dialogue in the program. In the first case it is called "b1_move" and is a vector with the two elements 1/sqrt(5) and 2/sqrt(5). In the second case it is called "hem_corr" and simply represents the value 1.</p>
+
+<p><code>start FrontTrouser</code>
+With the start command a new pattern part is started, in this case the front trouser. (Must be a single word)</p>
+
+<p><code>sheet BackTrouser add a b M2</code>
+Adds the points and/or lines after add to current pattern part, otherwise no points from a previous sheet will be shown on the new part, after "start" was evoked. You can use this, if eg you want some of the construction points and lines of the front trouser to also show up in the back trouser.</p>
+
+<p><code>sheet BackTrouser show front_outseam front_inseam_left front_topseam</code>
+Show the given cutlines also in the given pattern piece (BackTrouser) as reference guidelines. They will not be shown, if you switch off the construction lines.</p>
+
+<h3>Point Creation</h3>
+
+<p><code>point L is (0.,0.)
+point b1_prime is b1.p</code>
+Sets a point to a specific value. This can be either a given value or be based on an already existing point, in this case you have to put ".p" to the point's name. This point will be fully moveable.</p>
+
+<p><code>point G1 on G_line from g distance seat/2./10.+G1_corr</code>
+<code>point M on G_line from G distance dist(G,G1)/2.</code>
+Creates a point (eg G1) on a line (eg G_line) with a certain distance from another point on (!) that line (eg g). You can also use the "dist" command to measure the distance between two points. This point may only be moved on that line.</p>
+
+<p><code>point M1 intersect M_line B_line</code>
+Create a point by intersecting two lines. This point cannot be moved.</p>
+
+<p><code>point B5 from M3 on S6_B5 distance min dist(B4,M3)</code>
+With this command a point can be created on a line (S6_B5) that is a certain distance away from another point not on the line (M3). As this is the intersection of a circle with a line, there are usually two possible intersections, you might have to change min to max. Please note the different order to the above creation of a point on a line, where the other point lies on the line. This point can be moved along the given line.</p>
+
+<p><code>move M2 3*right</code>
+This moves the point M2 3cm to the right. Other available directions are left, up and down. Directions can also be obtained from lines by adding ".u" to the line's name. ‏Furthermore the "norm()" function exists, which creates a direction perpendicular to this direction.</p>
+
+<h3>Line Creation</h3>
+
+<p>Lines themselves are not moveable, but their founding points may and such moves the line.</p>
+
+<p><code>line LB from L up</code>
+Creates a line named LB from the point L in the direction upwards. As given before, other choices include: right, left, down and custom values.</p>
+
+<p><code>line ac_G from ac to G</code>
+Creates a straight line ac_G from point ac to G.</p>
+
+<p><code>line nr_line normal nr n_line</code>
+Creates a line perpendicular to n_line through the point n.</p>
+
+<h3>Cut Lines</h3>
+
+<p><code>cutline front_outseam G outseam_control_3 outseam_control_4 b1_prime</code>
+<code>cutline front_inseam_right K2 S2</code>
+Cut lines are either Beziér Lines, if you give four points or straight lines, if two points are given.</p>
+
+<p>If you invoke the cutline command a second time with the same name, the line is continued with the given points.</p>
 
 <h1>Licence</h1>
 
