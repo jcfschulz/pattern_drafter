@@ -37,7 +37,7 @@ import numpy as np
 
 import pattern
 
-colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0), "grey": (0.5,0.5,0.5), "orange": (255/255.,127/255.,80/255.), "white": (1,1,1)}
+colors = {"black": (0,0,0), "blue": (0,0,1), "red": (1,0,0), "pink": (200/255., 0., 1), "green": (0,1,0), "dark_green": (0,160/255.,0), "grey": (0.5,0.5,0.5), "orange": (255/255.,127/255.,80/255.), "white": (1,1,1)}
 
 class PatternWidget(gtk.DrawingArea):
     __gsignals__ = { "expose-event": "override", "motion-notify-event": "override", "button-press-event": "override", "button-release-event": "override", "scroll-event": "override"}
@@ -71,8 +71,9 @@ class PatternWidget(gtk.DrawingArea):
             if p.p[1]>self.maxheight: self.maxheight=p.p[1]
         self.maxaspect = self.maxwidth/self.maxheight
 
-        self.construction_color = "grey"
-        self.bezier_color = "orange"
+        self.construction_color = "red"
+        self.cut_color = "dark_green"
+        self.bezier_color = "blue"
         self.showconstruct = True
 
         self.move_to_next_sheet = [2*self.maxwidth,0]
@@ -240,8 +241,7 @@ class PatternWidget(gtk.DrawingArea):
 
                 ttemp = (px,py)
                 ttx,tty = px, py
-                self.statusbar.push(self.move_id, "Picked Point Position (in cm): "+str(round(ttx,2))+", "+str(round(tty,2)))
-
+                self.statusbar.push(self.move_id, "Picked Point: "+p.name+"     Position (in cm): "+str(round(ttx,2))+", "+str(round(tty,2)))        
                 self.pattern.parse_script(p.scriptline)
         else:
             for p in self.pattern.points.values():
@@ -258,8 +258,10 @@ class PatternWidget(gtk.DrawingArea):
                 if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.005):
                     self.highlight_points.append(copy.deepcopy(p))
                     self.move_point = self.pattern.points.values().index(p)
+                    ttx,tty = p.p
+                    self.statusbar.push(self.move_id, "Picked Point: "+p.name+"     Position (in cm): "+str(round(ttx,2))+", "+str(round(tty,2)))        
                     break
-        
+
         if len(self.highlight_points)>0:
             self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.HAND2))
         elif self.canvas_moving==True:
@@ -324,7 +326,7 @@ class PatternWidget(gtk.DrawingArea):
         self.ctx.stroke()
         self.ctx.restore()
 
-    def seamline(self, bez, linewidth=3, color="black", control_color="orange", show_control=True):
+    def cutline(self, bez, linewidth=3, color="black", control_color="orange", show_control=True):
         self.ctx.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
 
         point1x,point1y = self.recalc(bez[0][0])
@@ -428,10 +430,10 @@ class PatternWidget(gtk.DrawingArea):
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
             export_name = chooser.get_filename()
-            self.export_to_file(export_name)
+            self.export_to_file(export_name, construction_color=self.construction_color, color=self.cut_color)
         chooser.destroy()
 
-    def export_to_file(self, filename="Untitled.pdf", construction_color="grey", color="black", construction_pointsize=1, construction_linewidth=0.1, linewidth=0.3):
+    def export_to_file(self, filename="Untitled.pdf", construction_color="red", color="green", construction_pointsize=0.5, construction_linewidth=0.1, linewidth=0.3):
         conv = lambda x: 28.3464567*x 
 
         construction_pointsize = conv(construction_pointsize)
@@ -453,13 +455,13 @@ class PatternWidget(gtk.DrawingArea):
         height_iter = 5
         while conv(height_iter)<height:
             if height_iter%5==0:
-                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_source_rgb (colors["black"][0],colors["black"][1],colors["black"][2])
                 cr.set_line_width(conv(0.3))
                 cr.move_to(conv(0),conv(height_iter))
                 cr.line_to(conv(5),conv(height_iter))
                 cr.stroke()
             else:
-                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_source_rgb (colors["black"][0],colors["black"][1],colors["black"][2])
                 cr.set_line_width(conv(0.1))
                 cr.move_to(conv(0),conv(height_iter))
                 cr.line_to(conv(2),conv(height_iter))
@@ -469,13 +471,13 @@ class PatternWidget(gtk.DrawingArea):
         width_iter = 5
         while conv(width_iter)<width:
             if width_iter%5==0:
-                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_source_rgb (colors["black"][0],colors["black"][1],colors["black"][2])
                 cr.set_line_width(conv(0.3))
                 cr.move_to(conv(width_iter),conv(0))
                 cr.line_to(conv(width_iter),conv(5))
                 cr.stroke()
             else:
-                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_source_rgb (colors["black"][0],colors["black"][1],colors["black"][2])
                 cr.set_line_width(conv(0.1))
                 cr.move_to(conv(width_iter), conv(0))
                 cr.line_to(conv(width_iter), conv(2))
@@ -487,8 +489,10 @@ class PatternWidget(gtk.DrawingArea):
 
         for s in range(len(self.pattern.sheets)):
             if (self.showconstruct):
-                for p in self.pattern.points.values():
+                for pname in self.pattern.points:
+                    p = self.pattern.points [pname]
                     if self.pattern.sheets[s] in p.belongs_to_sheets:
+                        if pname.find("control")!=-1: continue
                         pointx,pointy = p.p
                         cr.set_source_rgb (colors[construction_color][0],colors[construction_color][1],colors[construction_color][2])
                         cr.save()
@@ -582,14 +586,14 @@ class PatternWidget(gtk.DrawingArea):
                         self.line(p1,p2,color=self.construction_color)
                 for p in self.highlight_points:
                     if self.pattern.sheets[s] in p.belongs_to_sheets:
-                        self.point(p.p,color="green")
+                        self.point(p.p,color="black", pointsize=10)
             for b in self.pattern.beziers:
                 if self.pattern.sheets.index(self.pattern.bezier_belongsto[b][0])==s:
-                    self.seamline(self.pattern.beziers[b], color="black", control_color=self.bezier_color)
+                    self.cutline(self.pattern.beziers[b], color=self.cut_color, control_color=self.bezier_color)
                 if (self.showconstruct):
                     for other in self.pattern.bezier_belongsto[b][1:]:
                         if self.pattern.sheets.index(other)==s:
-                            self.seamline(self.pattern.beziers[b], color="black", linewidth=1, control_color=self.bezier_color, show_control=False)
+                            self.cutline(self.pattern.beziers[b], color=self.cut_color, linewidth=1, control_color=self.bezier_color, show_control=False)
             
             temp = self.move_to_next_sheet
             tx,ty = self.recalc(temp)

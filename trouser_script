@@ -32,8 +32,8 @@ extrapar excess_corr is 0.5
 
 extrapar short_dart_length is 5.
 extrapar long_dart_length is 10.
-extrapar short_dart_height is 0.75
-extrapar long_dart_height is 0.5
+extrapar short_dart_height is 0.6
+extrapar long_dart_height is 0.4
 
 
 extrapar b1_move is (1./sqrt(5), 2./sqrt(5))
@@ -86,34 +86,44 @@ point nr on n_line from n distance n_right_corr
 line a_line from a up
 point outseam_control_1 intersect a_line ac_G
 point outseam_control_2 on ac_G from K1 distance -dist(G,K1)/3. 
-seamline front_outseam a outseam_control_1 outseam_control_1 K1
-seamline front_outseam K1 outseam_control_2 S G
+cutline front_outseam a outseam_control_1 outseam_control_1 K1
+cutline front_outseam K1 outseam_control_2 S G
 point b1_prime is b1.p
 move b1_prime b1_move
 point outseam_control_3 on LB from G distance 2*dist(G,B)/5. 
 point outseam_control_4 on LB from G distance 3*dist(G,B)/5. 
-seamline front_outseam G outseam_control_3 outseam_control_4 b1_prime
+cutline front_outseam G outseam_control_3 outseam_control_4 b1_prime
 
 point topseam_control_1 on B_line from b_ distance 4. 
-seamline front_topseam b1_prime topseam_control_1 M1 B1
-seamline front_topseam B1 b2
+cutline front_topseam b1_prime topseam_control_1 M1 B1
+cutline front_topseam B1 b2
 
 line b_line from b up
 point inseam_control_1 intersect b_line bc_G1
-seamline front_inseam b inseam_control_1 inseam_control_1 K2
-seamline front_inseam_right K2 S2
+cutline front_inseam b inseam_control_1 inseam_control_1 K2
+cutline front_inseam_right K2 S2
 point inseam_control_3 on bc_G1 from K2 distance -dist(S2,K2)/2. 
-seamline front_inseam_left K2 inseam_control_3 S3 S3
+cutline front_inseam_left K2 inseam_control_3 S3 S3
 
-point crotchseam_control_1 on B1_line from g_prime distance 2*dist(g,S1)/5.
-seamline front_crotchseam_right B1 g crotchseam_control_1 S2
+point crotchseam_control_1 is g.p
+move crotchseam_control_1 up
+line nr_line normal nr n_line 
+point crotchseam_control_2 on nr_line from nr distance -3
+point crotchseam_control_3 on nr_line from nr distance 1
+cutline front_crotchseam_right B1 crotchseam_control_1 crotchseam_control_2 nr
+cutline front_crotchseam_right nr crotchseam_control_3 S2 S2
+
 point g2 on G_line from g distance b_left_corr
 line b2_line from b2 down
-point crotchseam_control_2 is crotchseam_control_1.p
-move crotchseam_control_2 S_left_corr*right
-seamline front_crotchseam_left b2 g2 crotchseam_control_2 S3
+point crotchseam_control_4 is g2.p
+move crotchseam_control_4 (dist(g,B1)/2.)*up
+point crotchseam_control_5 on g_prime_S2 from n distance 4
+point crotchseam_control_6 on g_prime_S2 from n distance -2
+cutline front_crotchseam_left b2 crotchseam_control_4 crotchseam_control_5 n
+cutline front_crotchseam_left n crotchseam_control_6 S3 S3
 
-seamline front_hemseam a b
+
+cutline front_hemseam a b
 
 ################################################################################
 
@@ -173,13 +183,13 @@ point B6_prime on B4_B6 from B6 distance excess_corr
 
 point back_outseam_control_1 on c_K3 from c_prime distance -10
 point back_outseam_control_2 on c_K3 from K3_prime distance 10
-seamline back_outseam c back_outseam_control_1 back_outseam_control_2 K3
+cutline back_outseam c back_outseam_control_1 back_outseam_control_2 K3
 point back_outseam_control_3 is K3.p
 move back_outseam_control_3 7.5*up
 point back_outseam_control_4 on K3_G3 from G3 distance 15
-seamline back_outseam K3 back_outseam_control_3 back_outseam_control_4 G3
+cutline back_outseam K3 back_outseam_control_3 back_outseam_control_4 G3
 point back_outseam_control_5 on K3_G3 from B4 distance 10
-seamline back_outseam G3 back_outseam_control_5 B4_prime B4_prime
+cutline back_outseam G3 back_outseam_control_5 B4_prime B4_prime
 
 point B4_prime_control on B4_B6 from B4_prime distance -2
 point B6_prime_control on B4_B6 from B6_prime distance 5
@@ -213,35 +223,35 @@ move dart2_end -long_dart_height*normal(B4_B6.u)
 point dart2_end_control is dart2_end.p
 move dart2_end_control -4*B4_B6.u
 
-seamline back_topseam B4_prime B4_prime_control dart1_start_control dart1_start
-seamline back_topseam dart1_start dart1_middle
-seamline back_topseam dart1_middle dart1_end
-seamline back_topseam dart1_end dart1_end_control dart2_start_control dart2_start
-seamline back_topseam dart2_start dart2_middle
-seamline back_topseam dart2_middle dart2_end
-seamline back_topseam dart2_end dart2_end_control B6_prime_control B6_prime
+cutline back_topseam B4_prime B4_prime_control dart1_start_control dart1_start
+cutline back_topseam dart1_start dart1_middle
+cutline back_topseam dart1_middle dart1_end
+cutline back_topseam dart1_end dart1_end_control dart2_start_control dart2_start
+cutline back_topseam dart2_start dart2_middle
+cutline back_topseam dart2_middle dart2_end
+cutline back_topseam dart2_end dart2_end_control B6_prime_control B6_prime
 
-seamline back_crotchseam B6_prime G2
-seamline back_crotchseam G2 S6
+cutline back_crotchseam B6_prime G2
+cutline back_crotchseam G2 S6
 point back_crotchseam_control_1 on S6_B5 from S6 distance 5
 point back_crotchseam_control_2 is S2.p
 move back_crotchseam_control_2 5*left
 move back_crotchseam_control_2 2*up
-seamline back_crotchseam S6 back_crotchseam_control_1 back_crotchseam_control_2 S2
+cutline back_crotchseam S6 back_crotchseam_control_1 back_crotchseam_control_2 S2
 line back_crotchseam_control_line from back_crotchseam_control_2 to S2
 point back_crotchseam_control_3 on back_crotchseam_control_line from S2 distance -4
-seamline back_crotchseam S2 back_crotchseam_control_3 S4_prime S4_prime
+cutline back_crotchseam S2 back_crotchseam_control_3 S4_prime S4_prime
 
 point back_inseam_control_1 on d_K4 from d_prime distance -10
 point back_inseam_control_2 on d_K4 from K4_prime distance 20
-seamline back_inseam d back_inseam_control_1 back_inseam_control_2 K4
+cutline back_inseam d back_inseam_control_1 back_inseam_control_2 K4
 point back_inseam_control_3 is K4.p
 move back_inseam_control_3 10*up
 move back_inseam_control_3 1*right
 point back_inseam_control_4 is S4.p
 move back_inseam_control_4 10*down
 move back_inseam_control_4 4*left
-seamline back_inseam K4 back_inseam_control_3 back_inseam_control_4 S4_prime
+cutline back_inseam K4 back_inseam_control_3 back_inseam_control_4 S4_prime
 
-seamline back_hemseam c d
+cutline back_hemseam c d
 

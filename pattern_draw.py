@@ -43,7 +43,7 @@ def about_dialogue(event):
         gtk.MESSAGE_QUESTION,
         gtk.BUTTONS_OK,
         None)
-    dialog.set_markup('Pattern Draw 0.0.1')
+    dialog.set_markup('Pattern Drafter 0.0.1')
     dialog.format_secondary_text("2012 by Julius Schulz \n Licensed under GPL")
     dialog.show_all()
 
@@ -67,7 +67,7 @@ def run(Widget, pattern):
     canvas.attach(pattern_canvas,1,10,0,19)
     pattern_canvas.show()
 
-    btn1 = gtk.Button("Load Pattern")
+    btn1 = gtk.Button("Load Draft")
     btn1.connect("clicked", pattern_canvas.open_pattern)
     btn2 = gtk.Button("Load State")
     btn2.connect("clicked", pattern_canvas.load_state)
@@ -132,9 +132,9 @@ def run(Widget, pattern):
     gtk.ACCEL_LOCKED, gtk.main_quit)
     window.add_accel_group(accel_group) 
 
-    gobject.set_prgname("Pattern Draw")
+    gobject.set_prgname("Pattern Drafter")
 #    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
-    window.set_title("Pattern Draw  0.0.1   --   "+pattern.name)
+    window.set_title("Pattern Drafter  0.0.1   --   "+pattern.name)
 
     window.present()
     gtk.main()
@@ -143,26 +143,3 @@ def run(Widget, pattern):
 this_pattern = pattern.Pattern("trouser_script")
 this_pattern.parse_script()
 run(pattern_widget.PatternWidget, this_pattern)
-
-
-""" todo:
-before release:
-- finish back waist (incl darts)
-- make back control points relative
-- correct front trouser crotch curve
-
-
-after release:
-nice title (half working)
-rulers in gui
-intersect bezierline
-measure bezierlength
-advance change extrapars (on the fly, cancel reverts changes)
-measurement tape
-statusbar -> show pos
-real zoom
-scroll bars
-make bezier points freely moveable
-undo
-add buttons: set comments
-"""

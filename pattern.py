@@ -315,7 +315,7 @@ class Pattern:
                 else:
                     self.lines[words[1]] = VectorLine(words[1], li, self.points[words[3]],eval(words[4],self.alldicts), belongs_to_sheet=belongs_to_sheet)
             
-            elif words[0]=="seamline":
+            elif words[0]=="cutline":
                 if self.beziers.has_key(words[1])==False:
                     temp = []
                     for i in words[2:]: temp.append(copy.deepcopy(self.points[i].p))

@@ -1,0 +1,23 @@
+TODO
+before release 0.0.1:
+- correct front trouser crotch curve
+
+
+for next release:
+- nice title (half working)
+- rulers in gui
+- intersect bezierline
+- measure bezierlength
+- advance change extrapars (on the fly, cancel reverts changes)
+- measurement tape
+- statusbar -> show pos
+- real zoom
+- scroll bars
+- make bezier points freely moveable
+- undo
+- add buttons: set comments
+- seamlines (include allowance)
+- options (like cuton waistband)
+
+
+# pdfposter -mA4 -s1 Untitled.pdf tiled.pdf
