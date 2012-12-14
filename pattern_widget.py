@@ -239,7 +239,7 @@ class PatternWidget(gtk.DrawingArea):
                 p.p[1] = py
 
                 ttemp = (px,py)
-                ttx,tty = px, py #self.reverse_recalc(ttemp)
+                ttx,tty = px, py
                 self.statusbar.push(self.move_id, "Picked Point Position (in cm): "+str(round(ttx,2))+", "+str(round(tty,2)))
 
                 self.pattern.parse_script(p.scriptline)
@@ -439,7 +439,7 @@ class PatternWidget(gtk.DrawingArea):
         linewidth = conv(linewidth)
 
         s_num = len(self.pattern.sheets)
-        width = conv( 10 + s_num*self.maxwidth + (s_num-1)*self.move_to_next_sheet[0] + 10)
+        width = conv( 20 + (s_num+1)*self.maxwidth + 10)
         height = conv( 10 + self.maxheight + 10)
 
         if filename.split(".")[1] == "pdf":
@@ -450,7 +450,40 @@ class PatternWidget(gtk.DrawingArea):
             surface = cairo.SVGSurface(filename.split(".")[0] + '.svg', width, height)
         cr = cairo.Context(surface)
 
-        cr.translate(conv(10), conv(10))
+        height_iter = 5
+        while conv(height_iter)<height:
+            if height_iter%5==0:
+                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_line_width(conv(0.3))
+                cr.move_to(conv(0),conv(height_iter))
+                cr.line_to(conv(5),conv(height_iter))
+                cr.stroke()
+            else:
+                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_line_width(conv(0.1))
+                cr.move_to(conv(0),conv(height_iter))
+                cr.line_to(conv(2),conv(height_iter))
+                cr.stroke()
+            height_iter += 1
+
+        width_iter = 5
+        while conv(width_iter)<width:
+            if width_iter%5==0:
+                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_line_width(conv(0.3))
+                cr.move_to(conv(width_iter),conv(0))
+                cr.line_to(conv(width_iter),conv(5))
+                cr.stroke()
+            else:
+                cr.set_source_rgb (colors[color][0],colors[color][1],colors[color][2])
+                cr.set_line_width(conv(0.1))
+                cr.move_to(conv(width_iter), conv(0))
+                cr.line_to(conv(width_iter), conv(2))
+                cr.stroke()
+            width_iter += 1
+
+
+        cr.translate(conv(20), conv(10))
 
         for s in range(len(self.pattern.sheets)):
             if (self.showconstruct):

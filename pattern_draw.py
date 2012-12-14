@@ -133,7 +133,8 @@ def run(Widget, pattern):
     window.add_accel_group(accel_group) 
 
     gobject.set_prgname("Pattern Draw")
-    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
+#    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
+    window.set_title("Pattern Draw  0.0.1   --   by Julius Schulz")
 
     window.present()
     gtk.main()
@@ -149,11 +150,11 @@ before release:
 - finish back waist (incl darts)
 - make back control points relative
 - correct front trouser crotch curve
-- nice title (half working)
-- rulers
 
 
 after release:
+nice title (half working)
+rulers in gui
 intersect bezierline
 measure bezierlength
 advance change extrapars (on the fly, cancel reverts changes)
