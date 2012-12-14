@@ -9,6 +9,20 @@ import numpy as np
 import pattern
 
 
+def about_dialogue(event):
+    dialog = gtk.MessageDialog(
+        None,
+        gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+        gtk.MESSAGE_QUESTION,
+        gtk.BUTTONS_OK,
+        None)
+    dialog.set_markup('Pattern Draw 0.0.1')
+    dialog.format_secondary_text("2012 by Julius Schulz \n Licensed under GPL")
+    dialog.show_all()
+
+    a = dialog.run()
+    dialog.destroy()
+
 colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0), "grey": (0.5,0.5,0.5), "orange": (255/255.,127/255.,80/255.), "white": (1,1,1)}
 
 class PatternWidget(gtk.DrawingArea):
@@ -28,7 +42,7 @@ class PatternWidget(gtk.DrawingArea):
 
         self.zoom = .9
     
-        self.translate_vector_start = [30.,30.]
+        self.translate_vector_start = [100.,50.]
         self.translate_vector = copy.deepcopy(self.translate_vector_start)
         self.point_moving = False
         self.canvas_moving = False
@@ -46,6 +60,12 @@ class PatternWidget(gtk.DrawingArea):
         self.construction_color = "grey"
         self.bezier_color = "orange"
         self.showconstruct = True
+
+        self.move_to_next_sheet = [2*self.maxwidth,0]
+
+        self.save_name = "Untitled.pyc"
+
+        self.context_id = 0
 
     def do_expose_event(self, event):
         self.ctx = self.window.cairo_create()
@@ -129,11 +149,24 @@ class PatternWidget(gtk.DrawingArea):
         x/=self.zoom
         y/=self.zoom
 
+        temp = (x,1-y)
+        tx,ty = self.reverse_recalc(temp)
+        self.statusbar.push(self.pos_id, "Position: "+str(round(tx,2))+", "+str(round(ty,2)))
+
         self.highlight_points = []
         if (self.point_moving==True):
             p = self.pattern.points.values()[self.move_point]
             if p.fixed != True:
+                temp = self.move_to_next_sheet
+                tx,ty = self.recalc(temp)
                 xx,yy = self.recalc(p.p)
+
+                try:
+                    s = self.pattern.sheets.index(p.belongs_to_sheets[0])
+                except ValueError: pass
+                xx += s*tx
+                yy += s*ty
+
                 self.highlight_points = [ p ]
                 dx,dy = self.reverse_recalc((xx - x, (yy - (1-y))))
                 px = p.p[0] - dx
@@ -153,7 +186,16 @@ class PatternWidget(gtk.DrawingArea):
                 self.pattern.parse_script(p.scriptline)
         else:
             for p in self.pattern.points.values():
+                temp = self.move_to_next_sheet
+                tx,ty = self.recalc(temp)
                 xx,yy = self.recalc(p.p)
+
+                try:
+                    s = self.pattern.sheets.index(p.belongs_to_sheets[0])
+                except ValueError: pass
+                xx += s*tx
+                yy += s*ty
+
                 if (np.sqrt( (xx - x)**2 + ((1-yy) - y)**2) < 0.005):
                     self.highlight_points.append(copy.deepcopy(p))
                     self.move_point = self.pattern.points.values().index(p)
@@ -295,18 +337,24 @@ class PatternWidget(gtk.DrawingArea):
                                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
-            data = pickle.load( open( chooser.get_filename(), "r" ) )
+            self.save_name = chooser.get_filename()
+            data = pickle.load( open( self.save_name, "r" ) )
             self.pattern.input_data(data)
             self.queue_draw()
         chooser.destroy()
+        self.window.set_title("** Pattern Draw   --   " + self.pattern.filename+"    ( "+self.save_name +" )")
+
 
     def save_state(self, event):
         chooser = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_SAVE,
                                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
         response = chooser.run()
         if response == gtk.RESPONSE_OK:
-            pickle.dump( self.pattern.return_data(), open( chooser.get_filename(), "wb" ), -1 )
+            self.save_name = chooser.get_filename()
+            pickle.dump( self.pattern.return_data(), open( self.save_name, "wb" ), -1 )
         chooser.destroy()
+
+        self.window.set_title("** Pattern Draw   --   " + self.pattern.filename+"    ( "+self.save_name +" )")
 
     def draw(self, width, height):
         self.width = float(width)
@@ -332,15 +380,19 @@ class PatternWidget(gtk.DrawingArea):
                 for p in self.highlight_points:
                     if self.pattern.sheets[s] in p.belongs_to_sheets:
                         self.point(p.p,color="green")
-            for b in self.pattern.beziers.values():
-                if (s==0):
-                    self.seamline(b, color="black", control_color=self.bezier_color)
-                else:
-                    self.seamline(b, color="black", control_color=self.bezier_color, show_control=False)
+            for b in self.pattern.beziers:
+                if self.pattern.sheets.index(self.pattern.bezier_belongsto[b][0])==s:
+                    self.seamline(self.pattern.beziers[b], color="black", control_color=self.bezier_color)
+                if (self.showconstruct):
+                    for other in self.pattern.bezier_belongsto[b][1:]:
+                        if self.pattern.sheets.index(other)==s:
+                            self.seamline(self.pattern.beziers[b], color="black", linewidth=1, control_color=self.bezier_color, show_control=False)
             
-            temp = [self.maxwidth+30,0]
+            temp = self.move_to_next_sheet
             tx,ty = self.recalc(temp)
             self.ctx.translate(tx, ty)
+
+
 
 
 def run(Widget, pattern):
@@ -376,6 +428,9 @@ def run(Widget, pattern):
     btn8 = gtk.Button("Show/Hide Construction Points")
     btn8.connect("clicked", pattern_canvas.showshide_construction)
 
+    btn9 = gtk.Button("About")
+    btn9.connect("clicked", about_dialogue)
+
 
 
     canvas.attach(btn1,0,1,0,1,xpadding=5)
@@ -383,11 +438,13 @@ def run(Widget, pattern):
     canvas.attach(btn3,0,1,2,3,xpadding=5)
     canvas.attach(btn4,0,1,3,4,xpadding=5)
 
-    canvas.attach(btn5,0,1,5,6,xpadding=5)
-    canvas.attach(btn6,0,1,6,7,xpadding=5)
+    canvas.attach(btn5,0,1,4,5,xpadding=5)
+    canvas.attach(btn6,0,1,5,6,xpadding=5)
 
-    canvas.attach(btn7,0,1,8,9,xpadding=5)
-    canvas.attach(btn8,0,1,9,10,xpadding=5)
+    canvas.attach(btn7,0,1,6,7,xpadding=5)
+    canvas.attach(btn8,0,1,7,8,xpadding=5)
+
+    canvas.attach(btn9,0,1,9,10,xpadding=5)
 
     btn1.show()
     btn2.show()
@@ -397,11 +454,22 @@ def run(Widget, pattern):
     btn6.show()
     btn7.show()
     btn8.show()
+    btn9.show()
+
+    statusbar = gtk.Statusbar()
+    statusbar.show()
+    canvas.attach(statusbar,0,10,19,20)
+    pattern_canvas.statusbar = statusbar
+    pattern_canvas.pos_id = statusbar.get_context_id("Position")
+
 
     accel_group = gtk.AccelGroup()
     accel_group.connect_group(ord('q'), gtk.gdk.CONTROL_MASK,
     gtk.ACCEL_LOCKED, gtk.main_quit)
     window.add_accel_group(accel_group) 
+
+    gobject.set_prgname("Pattern Draw")
+    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
 
     window.present()
     gtk.main()
@@ -415,15 +483,12 @@ run(PatternWidget, trouser)
 """ todo:
 before release:
 - finish back waist (incl darts)
-- think of back control point movings
+- make back control points relative
 - correct front trouser crotch curve
-- show only relevant seamlines
-- think of shift
-- correct point picking
-- nice title
+- nice title (half working)
 - rulers
 - export pdf/svg
-
+- add button: about
 
 
 after release:
@@ -436,4 +501,5 @@ real zoom
 scroll bars
 make bezier points freely moveable
 undo
+add buttons: set comments
 """

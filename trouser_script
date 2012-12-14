@@ -91,7 +91,7 @@ seamline front_outseam G outseam_control_3 outseam_control_4 b1_prime
 
 point topseam_control_1 on B_line from b_ distance 4. 
 seamline front_topseam b1_prime topseam_control_1 M1 B1
-seamline font_topseam B1 b2
+seamline front_topseam B1 b2
 
 line b_line from b up
 point inseam_control_1 intersect b_line bc_G1
@@ -120,6 +120,8 @@ sheet BackTrouser add S S1 S2 S3
 sheet BackTrouser add M
 sheet BackTrouser add M1 B1 b_ b1 b1_prime
 sheet BackTrouser add L1_line K_line S_line G_line B_line M_line
+
+sheet BackTrouser show front_outseam front_inseam_left front_topseam front_inseam front_inseam_right front_crotchseam_left front_crotchseam_right front_hemseam
 
 point M3 intersect K_line M_line
 

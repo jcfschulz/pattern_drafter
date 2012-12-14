@@ -118,6 +118,7 @@ class Pattern:
         self.lines = {}
         self.beziers = {}
         self.measurenames = {}
+        self.bezier_belongsto = {}
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -132,6 +133,7 @@ class Pattern:
         self.alldicts.update(self.functions)
         self.alldicts.update(self.extrapars)
         self.alldicts.update(self.measurenames)
+        self.alldicts.update(self.bezier_belongsto)
 
         self.calc_num = 0
 
@@ -139,8 +141,10 @@ class Pattern:
 
         self.parse_file(filename)
 
+        self.filename = filename
+
     def return_data(self):
-        return [self.script_lines, self.measures, self.extrapars, self.points, self.lines, self.beziers, self.measurenames, self.calc_num]
+        return [self.script_lines, self.measures, self.extrapars, self.points, self.lines, self.beziers, self.measurenames, self.calc_num, self.bezier_belongsto, self.sheets]
 
     def input_data(self,data):
         self.script_lines = copy.deepcopy(data[0])
@@ -151,6 +155,8 @@ class Pattern:
         self.beziers = copy.deepcopy(data[5])
         self.measurenames = copy.deepcopy(data[6])
         self.calc_num = copy.deepcopy(data[7])
+        self.bezier_belongsto = copy.deepcopy(data[8])
+        self.sheets = copy.deepcopy(data[9])
 
         self.alldicts = self.measures.copy()
         self.alldicts.update(self.points)
@@ -160,6 +166,7 @@ class Pattern:
         self.alldicts.update(self.functions)
         self.alldicts.update(self.extrapars)
         self.alldicts.update(self.measurenames)
+        self.alldicts.update(self.bezier_belongsto)
 
 
     def dist(self,point1,point2):
@@ -175,6 +182,7 @@ class Pattern:
             self.alldicts.update(self.extrapars)
             self.alldicts.update(self.beziers)
             self.alldicts.update(self.measurenames)
+            self.alldicts.update(self.bezier_belongsto)
 
             words = l.split()
             if len(words)==0: continue
@@ -215,6 +223,7 @@ class Pattern:
             self.alldicts.update(self.lines)
             self.alldicts.update(self.extrapars)
             self.alldicts.update(self.beziers)
+            self.alldicts.update(self.bezier_belongsto)
 
             words = l.split()
             
@@ -227,6 +236,9 @@ class Pattern:
                 if words[2]=="add":
                     for w in words[3:]:
                         self.alldicts[w].belongs_to_sheets.append(words[1])
+                if words[2]=="show":
+                    for w in words[3:]:
+                        self.bezier_belongsto[w].append(words[1])
             elif words[0]=="point":
                 if words[2] == "is":
                     val = np.array(eval(''.join(words[3:]),self.alldicts))
@@ -277,6 +289,7 @@ class Pattern:
                     temp = []
                     for i in words[2:]: temp.append(copy.deepcopy(self.points[i].p))
                     self.beziers[words[1]] = [temp]
+                    self.bezier_belongsto[words[1]] = [belongs_to_sheet]
                 else:
                     temp = []
                     for i in words[2:]: temp.append(copy.deepcopy(self.points[i].p))
