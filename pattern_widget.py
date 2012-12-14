@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -31,27 +30,12 @@
 
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, cairo
+import gtk, cairo
 
 import copy, pickle
 import numpy as np
 
 import pattern
-
-
-def about_dialogue(event):
-    dialog = gtk.MessageDialog(
-        None,
-        gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-        gtk.MESSAGE_QUESTION,
-        gtk.BUTTONS_OK,
-        None)
-    dialog.set_markup('Pattern Draw 0.0.1')
-    dialog.format_secondary_text("2012 by Julius Schulz \n Licensed under GPL")
-    dialog.show_all()
-
-    a = dialog.run()
-    dialog.destroy()
 
 colors = {"black": (0,0,0), "red": (1,0,0), "green": (0,1,0), "grey": (0.5,0.5,0.5), "orange": (255/255.,127/255.,80/255.), "white": (1,1,1)}
 
@@ -144,7 +128,7 @@ class PatternWidget(gtk.DrawingArea):
             gtk.MESSAGE_QUESTION,
             gtk.BUTTONS_OK,
             None)
-        dialog.set_markup('Please enter your measurements:')
+        dialog.set_markup('Change extra parameters for pattern draft')
     
         entries = {}
         hboxes = {}
@@ -221,7 +205,7 @@ class PatternWidget(gtk.DrawingArea):
 
         temp = (x,1-y)
         tx,ty = self.reverse_recalc(temp)
-        self.statusbar.push(self.pos_id, "Position: "+str(round(tx,2))+", "+str(round(ty,2)))
+        self.statusbar.push(self.pos_id, "Mouse Position (in cm): "+str(round(tx,2))+", "+str(round(ty,2)))
 
         self.highlight_points = []
         if (self.point_moving==True):
@@ -253,6 +237,11 @@ class PatternWidget(gtk.DrawingArea):
 
                 p.p[0] = px
                 p.p[1] = py
+
+                ttemp = (px,py)
+                ttx,tty = px, py #self.reverse_recalc(ttemp)
+                self.statusbar.push(self.move_id, "Picked Point Position (in cm): "+str(round(ttx,2))+", "+str(round(tty,2)))
+
                 self.pattern.parse_script(p.scriptline)
         else:
             for p in self.pattern.points.values():
@@ -573,119 +562,3 @@ class PatternWidget(gtk.DrawingArea):
             tx,ty = self.recalc(temp)
             self.ctx.translate(tx, ty)
 
-
-
-
-def run(Widget, pattern):
-    window = gtk.Window()
-    window.connect("delete-event", gtk.main_quit)
-    
-    window.set_default_size(800, 800)
-    window.maximize()
-
-    canvas = gtk.Table(20, 10, False)
-    window.add(canvas)
-    canvas.show()
-
-    pattern_canvas = Widget(pattern)
-    canvas.attach(pattern_canvas,1,10,0,19)
-    pattern_canvas.show()
-
-    btn1 = gtk.Button("Load Pattern")
-    btn1.connect("clicked", pattern_canvas.open_pattern)
-    btn2 = gtk.Button("Load State")
-    btn2.connect("clicked", pattern_canvas.load_state)
-    btn3 = gtk.Button("Save State")
-    btn3.connect("clicked", pattern_canvas.save_state)
-    btn4 = gtk.Button("Export PDF/SVG")
-    btn4.connect("clicked", pattern_canvas.export_chooser)
-
-
-    btn5 = gtk.Button("Change Measures")
-    btn5.connect("clicked", pattern_canvas.change_measures)
-    btn_editextrapars = gtk.Button("Change Extra Parameters")
-    btn_editextrapars.connect("clicked", pattern_canvas.change_extrapars)
-    btn6 = gtk.Button("Reset to measures")
-    btn6.connect("clicked", pattern_canvas.reset_measures)
-
-    btn7 = gtk.Button("Reset View")
-    btn7.connect("clicked", pattern_canvas.reset_view)
-    btn8 = gtk.Button("Show/Hide Construction Points")
-    btn8.connect("clicked", pattern_canvas.showshide_construction)
-
-    btn_about = gtk.Button("About")
-    btn_about.connect("clicked", about_dialogue)
-
-
-
-    canvas.attach(btn1,0,1,0,1,xpadding=5)
-    canvas.attach(btn2,0,1,1,2,xpadding=5)
-    canvas.attach(btn3,0,1,2,3,xpadding=5)
-    canvas.attach(btn4,0,1,3,4,xpadding=5)
-
-    canvas.attach(btn5,0,1,4,5,xpadding=5)
-    canvas.attach(btn_editextrapars,0,1,5,6,xpadding=5)
-    canvas.attach(btn6,0,1,6,7,xpadding=5)
-
-    canvas.attach(btn7,0,1,7,8,xpadding=5)
-    canvas.attach(btn8,0,1,8,9,xpadding=5)
-
-    canvas.attach(btn_about,0,1,9,10,xpadding=5)
-
-    btn1.show()
-    btn2.show()
-    btn3.show()
-    btn4.show()
-    btn5.show()
-    btn_editextrapars.show()
-    btn6.show()
-    btn7.show()
-    btn8.show()
-    btn_about.show()
-
-    statusbar = gtk.Statusbar()
-    statusbar.show()
-    canvas.attach(statusbar,0,10,19,20)
-    pattern_canvas.statusbar = statusbar
-    pattern_canvas.pos_id = statusbar.get_context_id("Position")
-
-
-    accel_group = gtk.AccelGroup()
-    accel_group.connect_group(ord('q'), gtk.gdk.CONTROL_MASK,
-    gtk.ACCEL_LOCKED, gtk.main_quit)
-    window.add_accel_group(accel_group) 
-
-    gobject.set_prgname("Pattern Draw")
-    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
-
-    window.present()
-    gtk.main()
-
-
-trouser = pattern.Pattern("trouser_script")
-trouser.parse_script()
-run(PatternWidget, trouser)
-
-
-""" todo:
-before release:
-- finish back waist (incl darts)
-- make back control points relative
-- correct front trouser crotch curve
-- nice title (half working)
-- rulers
-- export pdf/svg
-
-
-after release:
-intersect bezierline
-measure bezierlength
-advance change extrapars (on the fly, cancel reverts changes)
-measurement tape
-statusbar -> show pos
-real zoom
-scroll bars
-make bezier points freely moveable
-undo
-add buttons: set comments
-"""
