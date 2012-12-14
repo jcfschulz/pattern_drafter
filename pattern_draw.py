@@ -134,7 +134,7 @@ def run(Widget, pattern):
 
     gobject.set_prgname("Pattern Draw")
 #    window.set_title("Pattern Draw   --   " + pattern.filename+"    ( "+pattern_canvas.save_name +" )")
-    window.set_title("Pattern Draw  0.0.1   --   by Julius Schulz")
+    window.set_title("Pattern Draw  0.0.1   --   "+pattern.name)
 
     window.present()
     gtk.main()

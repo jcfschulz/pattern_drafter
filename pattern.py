@@ -150,7 +150,7 @@ class Pattern:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.directions = {"up" : np.array((0.,1.)), "down" : np.array((0.,-1.)), "right": np.array((1.,0.)), "left": np.array((-1.,0.))}
-            self.functions = {"dist": self.dist, "sqrt": np.sqrt}
+            self.functions = {"dist": self.dist, "sqrt": np.sqrt, "normal": self.normal}
 
         self.alldicts = self.measures.copy()
         self.alldicts.update(self.points)
@@ -163,11 +163,10 @@ class Pattern:
         self.alldicts.update(self.bezier_belongsto)
 
         self.calc_num = 0
-
         self.sheets = []
+        self.name = "Unknown"
 
         self.parse_file(filename)
-
         self.filename = filename
 
     def return_data(self):
@@ -199,6 +198,9 @@ class Pattern:
     def dist(self,point1,point2):
         return point1.dist(point2)
 
+    def normal(self, u):
+        return np.array([-u[1], u[0]])
+
     def parse_file(self,filename):
         file_lines = open(filename).readlines()
 
@@ -219,6 +221,8 @@ class Pattern:
                 self.measurenames[words[1]] = words[2]
             elif words[0]=="extrapar":
                 self.extrapars[words[1]] = eval(''.join(words[3:]),self.alldicts)
+            elif words[0]=="name":
+                self.name = ' '.join(words[1:])
             elif words[0][0]=="#":
                 pass
             else:

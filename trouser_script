@@ -30,6 +30,11 @@ extrapar back_point_allowance_S is 1/2.
 extrapar waistband_allowance is 3
 extrapar excess_corr is 0.5
 
+extrapar short_dart_length is 5.
+extrapar long_dart_length is 10.
+extrapar short_dart_height is 0.75
+extrapar long_dart_height is 0.5
+
 
 extrapar b1_move is (1./sqrt(5), 2./sqrt(5))
 
@@ -165,8 +170,6 @@ point B7 on B4_B6 from B6 distance waist/4.+waistband_allowance
 
 point B4_prime on B4_B6 from B4 distance -excess_corr
 point B6_prime on B4_B6 from B6 distance excess_corr
-#print dist(B4,B7)
-#print dist(B4,B7)-2*excess_corr
 
 point back_outseam_control_1 on c_K3 from c_prime distance -10
 point back_outseam_control_2 on c_K3 from K3_prime distance 10
@@ -178,7 +181,45 @@ seamline back_outseam K3 back_outseam_control_3 back_outseam_control_4 G3
 point back_outseam_control_5 on K3_G3 from B4 distance 10
 seamline back_outseam G3 back_outseam_control_5 B4_prime B4_prime
 
-seamline back_topseam B4_prime B6_prime
+point B4_prime_control on B4_B6 from B4_prime distance -2
+point B6_prime_control on B4_B6 from B6_prime distance 5
+
+
+point dart1 on B4_B6 from B4 distance -dist(B4_prime, B6_prime)/4.
+line dart1_line normal dart1 B4_B6
+point dart1_middle on dart1_line from dart1 distance short_dart_length
+point dart1_start is dart1.p
+move dart1_start (dist(B4,B7)-2*excess_corr)/6.*B4_B6.u
+move dart1_start -short_dart_height*normal(B4_B6.u)
+point dart1_start_control is dart1_start.p
+move dart1_start_control 2*B4_B6.u
+point dart1_end is dart1.p
+move dart1_end -(dist(B4,B7)-2*excess_corr)/6.*B4_B6.u
+move dart1_end -short_dart_height*normal(B4_B6.u)
+point dart1_end_control is dart1_end.p
+move dart1_end_control -2*B4_B6.u
+
+point dart2 on B4_B6 from B4 distance -dist(B4_prime, B6_prime)/2.
+line dart2_line normal dart2 B4_B6
+point dart2_middle on dart2_line from dart2 distance long_dart_length
+point dart2_start is dart2.p
+move dart2_start (dist(B4,B7)-2*excess_corr)/3.*B4_B6.u
+move dart2_start -long_dart_height*normal(B4_B6.u)
+point dart2_start_control is dart2_start.p
+move dart2_start_control 2*B4_B6.u
+point dart2_end is dart2.p
+move dart2_end -(dist(B4,B7)-2*excess_corr)/3.*B4_B6.u
+move dart2_end -long_dart_height*normal(B4_B6.u)
+point dart2_end_control is dart2_end.p
+move dart2_end_control -4*B4_B6.u
+
+seamline back_topseam B4_prime B4_prime_control dart1_start_control dart1_start
+seamline back_topseam dart1_start dart1_middle
+seamline back_topseam dart1_middle dart1_end
+seamline back_topseam dart1_end dart1_end_control dart2_start_control dart2_start
+seamline back_topseam dart2_start dart2_middle
+seamline back_topseam dart2_middle dart2_end
+seamline back_topseam dart2_end dart2_end_control B6_prime_control B6_prime
 
 seamline back_crotchseam B6_prime G2
 seamline back_crotchseam G2 S6
