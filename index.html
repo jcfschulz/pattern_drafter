@@ -55,8 +55,9 @@ You also require the pattern drafting instructions. Currently there is only a ba
 
 <h1>Basic Usage</h1>
 
-<p>The program can be launched from the commandline via
-<code>python pattern_draw.py</code></p>
+<p>The program can be launched from the commandline via</p>
+
+<p><code>python pattern_draw.py</code></p>
 
 <p>The main screen consists of the pattern canvas, the buttons and a statusbar.</p>
 
@@ -71,12 +72,42 @@ You also require the pattern drafting instructions. Currently there is only a ba
 <ul>
 <li>Green lines mark the cutting lines</li>
 <li>Red lines and points are construction lines</li>
-<li>Blue Points and the corresponding lines mark the Beziér controls for the cutting lines
-### Altering the Pattern</li>
+<li>Blue Points and the corresponding lines mark the Beziér controls for the cutting lines</li>
+</ul><h3>Altering the Pattern</h3>
+
+<ul>
 <li>You can move the points by clicking on the and dragging. On the statusbar you have information about the position change given in cm.</li>
 <li>The movements are restricted by the drafting macro. Currently there is no detailed description in the program, please refer to the corresponding script (and probably also its original source).</li>
 <li>The draft is updated on the fly according to your changes.</li>
-</ul>
+</ul><h1>The button control</h1>
+
+<ul>
+<li>
+<strong>Load Draft</strong>: Loads a new draft script into the program</li>
+<li>
+<strong>Load/Save State</strong>: Saves all changes made. This uses the pickle feature of python.</li>
+<li>
+<strong>Export PDF/SVG</strong>: With this you can save your pattern to either a pdf or svg file; this is based on the ending you give your filename. 
+Construction points and lines are included, if they are visible. Beziér controls are never included.
+The final result also includes rulers on the top and left side, with 1cm and 5cm marks. This is helpful to ensure proper printing.</li>
+<li>
+<strong>Change Measures</strong>: Input the measures as requested by the draft.</li>
+<li>
+<strong>Change Extra Parameters</strong>: The drafts can use certain extra parameters, which can alter the draft. The can be edited here. These are raw parameters and you should refer to the draft script as to their meaning.
+All changes you made previously will be conserved, if you alter extra parameters.</li>
+<li>
+<strong>Reset to Measures</strong>: Will remove any manual changes you made in the canvas window. (But not modified extra parameters)</li>
+<li>
+<strong>Reset View</strong>: Resets Zoom and Position of the canvas to it's initial position.</li>
+<li>
+<strong>Show/Hide Construction Points</strong>: Hide or Show Construction Points and Beziér controls.</li>
+</ul><h1>Draft Scripts</h1>
+
+<p>Yet to be done</p>
+
+<h1>Licence</h1>
+
+<p>The program is released under GPLv3. This does not hold for the drafting scripts, they are due to their original sources terms.</p>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/jcfschulz">jcfschulz</a></p>
